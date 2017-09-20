@@ -37,12 +37,12 @@ func main() {
 	//Get git information
 	_ = git2go.Repository{}
 
-	discover:= git2go.Discover(".",false, ["/","."] )
+	//discover:= git2go.Discover(".",false, ["/","."] )
 
 	//Format output
-	userInfo := colors.Format(user+"@"+hostname, "bold", "green")
-	pwdInfo := colors.Format(pwd, "bold", "blue")
-	virtualEnvInfo := colors.Format(virtualEnv, "blue")
+	userInfo := colors.Format(user+"@"+hostname, colors.Bold, colors.FgGreen)
+	pwdInfo := colors.Format(pwd, colors.Bold, colors.FgBlue)
+	virtualEnvInfo := colors.Format(virtualEnv, colors.FgBlue)
 
 	fmt.Printf("%s[%s %s]$ ", virtualEnvInfo, userInfo, pwdInfo)
 }
