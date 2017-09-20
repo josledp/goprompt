@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 
+	git2go "gopkg.in/libgit2/git2go.v26"
+
 	"takiones.com/goprompt/colors"
 )
 
@@ -32,10 +34,15 @@ func main() {
 	//Get Python VirtualEnv info
 	virtualEnv := getPythonVirtualEnv()
 
+	//Get git information
+	_ = git2go.Repository{}
+
+	discover:= git2go.Discover(".",false, ["/","."] )
+
 	//Format output
 	userInfo := colors.Format(user+"@"+hostname, "bold", "green")
 	pwdInfo := colors.Format(pwd, "bold", "blue")
 	virtualEnvInfo := colors.Format(virtualEnv, "blue")
 
-	fmt.Printf("%s[%s  %s]$ ", virtualEnvInfo, userInfo, pwdInfo)
+	fmt.Printf("%s[%s %s]$ ", virtualEnvInfo, userInfo, pwdInfo)
 }
