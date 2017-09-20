@@ -37,9 +37,24 @@ func main() {
 	//Get git information
 	_ = git2go.Repository{}
 
-	//discover:= git2go.Discover(".",false, ["/","."] )
-
-	//Format output
+	gitpath, err := git2go.Discover(".", false, []string{"/"})
+	if err == nil {
+		repository, err := git2go.OpenRepository(gitpath)
+		if err != nil {
+			log.Fatalf("Error opening repository at %s: %v", gitpath, err)
+		}
+		defer repository.Free()
+		repostate, err := repository.StatusList(nil)
+		if err != nil {
+			log.Fatalf("Impsible to get repository status at %s: %v", gitpath, err)
+		}
+		defer repostate.Free()
+		n, err := repostate.EntryCount()
+		for i := 0; i < n; i++ {
+			entry, _ := repostate.ByIndex(i)
+			fmt.Println(entry.Status)
+		}
+	}
 	userInfo := colors.Format(user+"@"+hostname, colors.Bold, colors.FgGreen)
 	pwdInfo := colors.Format(pwd, colors.Bold, colors.FgBlue)
 	virtualEnvInfo := colors.Format(virtualEnv, colors.FgBlue)
