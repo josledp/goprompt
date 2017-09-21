@@ -55,9 +55,15 @@ func main() {
 			fmt.Println(entry.Status)
 		}
 	}
-	userInfo := termcolor.Format(user+"@"+hostname, termcolor.Bold, termcolor.FgGreen)
-	pwdInfo := termcolor.Format(pwd, termcolor.Bold, termcolor.FgBlue)
-	virtualEnvInfo := termcolor.Format(virtualEnv, termcolor.FgBlue)
+	var userInfo, pwdInfo, virtualEnvInfo string
+
+	if user == "root" {
+		userInfo = termcolor.Format(hostname, termcolor.Bold, termcolor.FgRed)
+	} else {
+		userInfo = termcolor.Format(hostname, termcolor.Bold, termcolor.FgGreen)
+	}
+	pwdInfo = termcolor.Format(pwd, termcolor.Bold, termcolor.FgBlue)
+	virtualEnvInfo = termcolor.Format(virtualEnv, termcolor.FgBlue)
 
 	fmt.Printf("%s[%s %s]$ ", virtualEnvInfo, userInfo, pwdInfo)
 }
