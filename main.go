@@ -33,6 +33,41 @@ func getAwsInfo() string {
 	return role
 }
 
+func getGitInfo() gitInfo {
+	gi := gitInfo{}
+
+	gitpath, err := git2go.Discover(".", false, []string{"/"})
+	if err == nil {
+		repository, err := git2go.OpenRepository(gitpath)
+		if err != nil {
+			log.Fatalf("Error opening repository at %s: %v", gitpath, err)
+		}
+		defer repository.Free()
+		repostate, err := repository.StatusList(nil)
+		if err != nil {
+			log.Fatalf("Impsible to get repository status at %s: %v", gitpath, err)
+		}
+		defer repostate.Free()
+		n, err := repostate.EntryCount()
+		for i := 0; i < n; i++ {
+			entry, _ := repostate.ByIndex(i)
+			log.Println(entry.Status)
+		}
+	}
+	return gi
+}
+
+type gitInfo struct {
+	conflict      bool
+	changed       int
+	staged        int
+	untracked     int
+	commitsAhead  int
+	commitsBehind int
+	stashed       int
+	branch        string
+}
+
 type termInfo struct {
 	pwd        string
 	user       string
@@ -40,6 +75,7 @@ type termInfo struct {
 	virtualEnv string
 	awsRole    string
 	awsExpire  time.Time
+	gi         gitInfo
 }
 
 func main() {
@@ -72,24 +108,7 @@ func main() {
 	//Get git information
 	_ = git2go.Repository{}
 
-	gitpath, err := git2go.Discover(".", false, []string{"/"})
-	if err == nil {
-		repository, err := git2go.OpenRepository(gitpath)
-		if err != nil {
-			log.Fatalf("Error opening repository at %s: %v", gitpath, err)
-		}
-		defer repository.Free()
-		repostate, err := repository.StatusList(nil)
-		if err != nil {
-			log.Fatalf("Impsible to get repository status at %s: %v", gitpath, err)
-		}
-		defer repostate.Free()
-		n, err := repostate.EntryCount()
-		for i := 0; i < n; i++ {
-			entry, _ := repostate.ByIndex(i)
-			fmt.Println(entry.Status)
-		}
-	}
+	ti.gi = getGitInfo()
 
 	fmt.Println(makePrompt(ti))
 }
@@ -100,13 +119,13 @@ func makePrompt(ti termInfo) string {
 	promptEnd := "$"
 
 	if ti.user == "root" {
-		userInfo = termcolor.Format(ti.hostname, termcolor.Bold, termcolor.FgRed)
+		userInfo = termcolor.EscapedFormat(ti.hostname, termcolor.Bold, termcolor.FgRed)
 		promptEnd = "#"
 	} else {
-		userInfo = termcolor.Format(ti.hostname, termcolor.Bold, termcolor.FgGreen)
+		userInfo = termcolor.EscapedFormat(ti.hostname, termcolor.Bold, termcolor.FgGreen)
 	}
-	pwdInfo = termcolor.Format(ti.pwd, termcolor.Bold, termcolor.FgBlue)
-	virtualEnvInfo = termcolor.Format(ti.virtualEnv, termcolor.FgBlue)
+	pwdInfo = termcolor.EscapedFormat(ti.pwd, termcolor.Bold, termcolor.FgBlue)
+	virtualEnvInfo = termcolor.EscapedFormat(ti.virtualEnv, termcolor.FgBlue)
 
 	if ti.awsRole != "" {
 		t := termcolor.FgGreen
@@ -116,7 +135,7 @@ func makePrompt(ti termInfo) string {
 		} else if d < 600 {
 			t = termcolor.FgYellow
 		}
-		awsInfo = termcolor.Format(ti.awsRole, t) + "|"
+		awsInfo = termcolor.EscapedFormat(ti.awsRole, t) + "|"
 	}
 
 	return fmt.Sprintf("%s[%s%s %s]%s ", virtualEnvInfo, awsInfo, userInfo, pwdInfo, promptEnd)
