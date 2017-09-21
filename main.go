@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	git2go "gopkg.in/libgit2/git2go.v24"
 
@@ -20,6 +22,17 @@ func getPythonVirtualEnv() string {
 	return virtualEnv
 }
 
+func getAwsInfo() string {
+	role := os.Getenv("AWS_ROLE")
+	if role != "" {
+		tmp := strings.Split(role, ":")
+		role = tmp[0]
+		tmp = strings.Split(tmp[1], "-")
+		role += ":" + tmp[2]
+	}
+	return role
+}
+
 func main() {
 	//Get basicinfo
 	pwd, err := os.Getwd()
@@ -33,6 +46,11 @@ func main() {
 	}
 	//Get Python VirtualEnv info
 	virtualEnv := getPythonVirtualEnv()
+
+	//AWS
+	awsRole := getAwsInfo()
+	iExpire, _ := strconv.ParseInt(os.Getenv("AWS_SESSION_EXPIRE"), 10, 0)
+	awsExpire := time.Unix(iExpire, int64(0))
 
 	//Get git information
 	_ = git2go.Repository{}
@@ -55,7 +73,7 @@ func main() {
 			fmt.Println(entry.Status)
 		}
 	}
-	var userInfo, pwdInfo, virtualEnvInfo string
+	var userInfo, pwdInfo, virtualEnvInfo, awsInfo string
 
 	if user == "root" {
 		userInfo = termcolor.Format(hostname, termcolor.Bold, termcolor.FgRed)
@@ -65,5 +83,16 @@ func main() {
 	pwdInfo = termcolor.Format(pwd, termcolor.Bold, termcolor.FgBlue)
 	virtualEnvInfo = termcolor.Format(virtualEnv, termcolor.FgBlue)
 
-	fmt.Printf("%s[%s %s]$ ", virtualEnvInfo, userInfo, pwdInfo)
+	if awsRole != "" {
+		t := termcolor.FgGreen
+		d := time.Until(awsExpire).Seconds()
+		if d < 0 {
+			t = termcolor.FgRed
+		} else if d < 600 {
+			t = termcolor.FgYellow
+		}
+		awsInfo = termcolor.Format(awsRole, t) + "|"
+	}
+
+	fmt.Printf("%s[%s%s %s]$ ", virtualEnvInfo, awsInfo, userInfo, pwdInfo)
 }
