@@ -39,11 +39,16 @@ func main() {
 	if err != nil {
 		log.Fatalln("Unable to get current path", err)
 	}
+	home := os.Getenv("HOME")
+	if home != "" {
+		pwd = strings.Replace(pwd, home, "~", -1)
+	}
 	user := os.Getenv("USER")
 	hostname, err := os.Hostname()
 	if err != nil {
 		log.Fatalln("Unable to get hostname", err)
 	}
+
 	//Get Python VirtualEnv info
 	virtualEnv := getPythonVirtualEnv()
 
@@ -73,6 +78,8 @@ func main() {
 			fmt.Println(entry.Status)
 		}
 	}
+
+	//Formatting
 	var userInfo, pwdInfo, virtualEnvInfo, awsInfo string
 
 	if user == "root" {
