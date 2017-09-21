@@ -97,9 +97,11 @@ func main() {
 func makePrompt(ti termInfo) string {
 	//Formatting
 	var userInfo, pwdInfo, virtualEnvInfo, awsInfo string
+	promptEnd := "$"
 
 	if ti.user == "root" {
 		userInfo = termcolor.Format(ti.hostname, termcolor.Bold, termcolor.FgRed)
+		promptEnd = "#"
 	} else {
 		userInfo = termcolor.Format(ti.hostname, termcolor.Bold, termcolor.FgGreen)
 	}
@@ -117,5 +119,5 @@ func makePrompt(ti termInfo) string {
 		awsInfo = termcolor.Format(ti.awsRole, t) + "|"
 	}
 
-	return fmt.Sprintf("%s[%s%s %s]$ ", virtualEnvInfo, awsInfo, userInfo, pwdInfo)
+	return fmt.Sprintf("%s[%s%s %s]%s ", virtualEnvInfo, awsInfo, userInfo, pwdInfo, promptEnd)
 }
