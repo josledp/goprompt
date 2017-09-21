@@ -33,29 +33,41 @@ func getAwsInfo() string {
 	return role
 }
 
+type termInfo struct {
+	pwd        string
+	user       string
+	hostname   string
+	virtualEnv string
+	awsRole    string
+	awsExpire  time.Time
+}
+
 func main() {
+	var err error
+
+	ti := termInfo{}
 	//Get basicinfo
-	pwd, err := os.Getwd()
+	ti.pwd, err = os.Getwd()
 	if err != nil {
 		log.Fatalln("Unable to get current path", err)
 	}
 	home := os.Getenv("HOME")
 	if home != "" {
-		pwd = strings.Replace(pwd, home, "~", -1)
+		ti.pwd = strings.Replace(ti.pwd, home, "~", -1)
 	}
-	user := os.Getenv("USER")
-	hostname, err := os.Hostname()
+	ti.user = os.Getenv("USER")
+	ti.hostname, err = os.Hostname()
 	if err != nil {
 		log.Fatalln("Unable to get hostname", err)
 	}
 
 	//Get Python VirtualEnv info
-	virtualEnv := getPythonVirtualEnv()
+	ti.virtualEnv = getPythonVirtualEnv()
 
 	//AWS
-	awsRole := getAwsInfo()
+	ti.awsRole = getAwsInfo()
 	iExpire, _ := strconv.ParseInt(os.Getenv("AWS_SESSION_EXPIRE"), 10, 0)
-	awsExpire := time.Unix(iExpire, int64(0))
+	ti.awsExpire = time.Unix(iExpire, int64(0))
 
 	//Get git information
 	_ = git2go.Repository{}
@@ -79,27 +91,31 @@ func main() {
 		}
 	}
 
+	fmt.Println(makePrompt(ti))
+}
+
+func makePrompt(ti termInfo) string {
 	//Formatting
 	var userInfo, pwdInfo, virtualEnvInfo, awsInfo string
 
-	if user == "root" {
-		userInfo = termcolor.Format(hostname, termcolor.Bold, termcolor.FgRed)
+	if ti.user == "root" {
+		userInfo = termcolor.Format(ti.hostname, termcolor.Bold, termcolor.FgRed)
 	} else {
-		userInfo = termcolor.Format(hostname, termcolor.Bold, termcolor.FgGreen)
+		userInfo = termcolor.Format(ti.hostname, termcolor.Bold, termcolor.FgGreen)
 	}
-	pwdInfo = termcolor.Format(pwd, termcolor.Bold, termcolor.FgBlue)
-	virtualEnvInfo = termcolor.Format(virtualEnv, termcolor.FgBlue)
+	pwdInfo = termcolor.Format(ti.pwd, termcolor.Bold, termcolor.FgBlue)
+	virtualEnvInfo = termcolor.Format(ti.virtualEnv, termcolor.FgBlue)
 
-	if awsRole != "" {
+	if ti.awsRole != "" {
 		t := termcolor.FgGreen
-		d := time.Until(awsExpire).Seconds()
+		d := time.Until(ti.awsExpire).Seconds()
 		if d < 0 {
 			t = termcolor.FgRed
 		} else if d < 600 {
 			t = termcolor.FgYellow
 		}
-		awsInfo = termcolor.Format(awsRole, t) + "|"
+		awsInfo = termcolor.Format(ti.awsRole, t) + "|"
 	}
 
-	fmt.Printf("%s[%s%s %s]$ ", virtualEnvInfo, awsInfo, userInfo, pwdInfo)
+	return fmt.Sprintf("%s[%s%s %s]$ ", virtualEnvInfo, awsInfo, userInfo, pwdInfo)
 }
