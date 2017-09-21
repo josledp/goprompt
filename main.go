@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	git2go "gopkg.in/libgit2/git2go.v26"
+	git2go "gopkg.in/libgit2/git2go.v24"
 
-	"takiones.com/goprompt/colors"
+	"github.com/josledp/termcolor"
 )
 
 func getPythonVirtualEnv() string {
@@ -55,9 +55,9 @@ func main() {
 			fmt.Println(entry.Status)
 		}
 	}
-	userInfo := colors.Format(user+"@"+hostname, colors.Bold, colors.FgGreen)
-	pwdInfo := colors.Format(pwd, colors.Bold, colors.FgBlue)
-	virtualEnvInfo := colors.Format(virtualEnv, colors.FgBlue)
+	userInfo := termcolor.Format(user+"@"+hostname, termcolor.Bold, termcolor.FgGreen)
+	pwdInfo := termcolor.Format(pwd, termcolor.Bold, termcolor.FgBlue)
+	virtualEnvInfo := termcolor.Format(virtualEnv, termcolor.FgBlue)
 
 	fmt.Printf("%s[%s %s]$ ", virtualEnvInfo, userInfo, pwdInfo)
 }
