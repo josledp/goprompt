@@ -149,13 +149,22 @@ func getGitInfo() gitInfo {
 		}
 
 		remoteRef, err := localBranch.Upstream()
-		if err != nil {
-			return gi
+		if err == nil {
+			defer remoteRef.Free()
+
+			if !remoteRef.Target().Equal(localRef.Target()) {
+				log.Println("Local & remore differ:", remoteRef.Target().String(), localRef.Target().String())
+				//git rev-list --left-right localRef...remoteRef
+				oids, err := repository.MergeBases(localRef.Target(), remoteRef.Target())
+				if err != nil {
+					log.Fatalln("Error getting merge bases")
+				}
+				for _, oid := range oids {
+					log.Println(oid.String())
+				}
+			}
 		}
-		if !remoteRef.Target().Equal(localRef.Target()) {
-			log.Println("Local & remore differ")
-		}
-		log.Println(remoteRef.Target().NCmp(localRef.Target(), 10))
+
 	}
 	return gi
 }
