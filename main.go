@@ -141,6 +141,7 @@ func getGitInfo() gitInfo {
 
 		ref := strings.Split(reference.Name(), "/")
 		gi.branch = ref[len(ref)-1]
+		//Get commits Ahead/Behind
 	}
 	return gi
 }
