@@ -50,7 +50,10 @@ func getGitInfo() gitInfo {
 			log.Fatalf("Error opening repository at %s: %v", gitpath, err)
 		}
 		defer repository.Free()
-		repostate, err := repository.StatusList(nil)
+		statusOpts := git2go.StatusOptions{
+			Flags: git2go.StatusOptIncludeUntracked,
+		}
+		repostate, err := repository.StatusList(&statusOpts)
 		if err != nil {
 			log.Fatalf("Error getting repository status at %s: %v", gitpath, err)
 		}
@@ -90,7 +93,7 @@ func getGitInfo() gitInfo {
 			}
 			if entry.Status&git2go.StatusWtNew > 0 {
 				log.Println("StatusWtNew")
-				gi.changed++
+				gi.untracked++
 				got = true
 			}
 			if entry.Status&git2go.StatusWtModified > 0 {
