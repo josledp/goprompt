@@ -13,6 +13,13 @@ import (
 	"github.com/josledp/termcolor"
 )
 
+const (
+	downArrow   = "↓"
+	upArrow     = "↑"
+	threePoints = "…"
+	dot         = "●"
+)
+
 func getPythonVirtualEnv() string {
 	virtualEnv, ve := os.LookupEnv("VIRTUAL_ENV")
 	if ve {
@@ -45,13 +52,79 @@ func getGitInfo() gitInfo {
 		defer repository.Free()
 		repostate, err := repository.StatusList(nil)
 		if err != nil {
-			log.Fatalf("Impsible to get repository status at %s: %v", gitpath, err)
+			log.Fatalf("Error getting repository status at %s: %v", gitpath, err)
 		}
 		defer repostate.Free()
 		n, err := repostate.EntryCount()
 		for i := 0; i < n; i++ {
 			entry, _ := repostate.ByIndex(i)
-			log.Println(entry.Status)
+			got := false
+			if entry.Status&git2go.StatusCurrent > 0 {
+				log.Println("StatusCurrent")
+				got = true
+			}
+			if entry.Status&git2go.StatusIndexNew > 0 {
+				log.Println("StatusIndexNew")
+				gi.staged++
+				got = true
+			}
+			if entry.Status&git2go.StatusIndexModified > 0 {
+				log.Println("StatusIndexModified")
+				gi.staged++
+				got = true
+			}
+			if entry.Status&git2go.StatusIndexDeleted > 0 {
+				log.Println("StatusIndexDeleted")
+				gi.staged++
+				got = true
+			}
+			if entry.Status&git2go.StatusIndexRenamed > 0 {
+				log.Println("StatusIndexRenamed")
+				gi.staged++
+				got = true
+			}
+			if entry.Status&git2go.StatusIndexTypeChange > 0 {
+				log.Println("StatusIndexTypeChange")
+				gi.staged++
+				got = true
+			}
+			if entry.Status&git2go.StatusWtNew > 0 {
+				log.Println("StatusWtNew")
+				gi.changed++
+				got = true
+			}
+			if entry.Status&git2go.StatusWtModified > 0 {
+				log.Println("StatusWtModified")
+				gi.changed++
+				got = true
+			}
+			if entry.Status&git2go.StatusWtDeleted > 0 {
+				log.Println("StatusWtDeleted")
+				gi.changed++
+				got = true
+			}
+			if entry.Status&git2go.StatusWtTypeChange > 0 {
+				log.Println("StatusWtTypeChange")
+				gi.changed++
+				got = true
+			}
+			if entry.Status&git2go.StatusWtRenamed > 0 {
+				log.Println("StatusWtRenamed")
+				gi.changed++
+				got = true
+			}
+			if entry.Status&git2go.StatusIgnored > 0 {
+				log.Println("StatusIgnored")
+				got = true
+			}
+			if entry.Status&git2go.StatusConflicted > 0 {
+				log.Println("StatusCOnflicted")
+				gi.conflict = true
+				got = true
+			}
+			if !got {
+				log.Println("Unknown: ", entry.Status)
+			}
 		}
 	}
 	return gi
