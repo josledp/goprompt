@@ -52,7 +52,7 @@ func getGitInfo() gitInfo {
 		}
 		defer repository.Free()
 		statusOpts := git2go.StatusOptions{
-			Flags: git2go.StatusOptIncludeUntracked,
+			Flags: git2go.StatusOptIncludeUntracked | git2go.StatusOptRenamesHeadToIndex,
 		}
 		repostate, err := repository.StatusList(&statusOpts)
 		if err != nil {
