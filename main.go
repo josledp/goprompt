@@ -51,6 +51,8 @@ func getGitInfo() gitInfo {
 			log.Fatalf("Error opening repository at %s: %v", gitpath, err)
 		}
 		defer repository.Free()
+
+		//Get current tracked & untracked files status
 		statusOpts := git2go.StatusOptions{
 			Flags: git2go.StatusOptIncludeUntracked | git2go.StatusOptRenamesHeadToIndex,
 		}
@@ -130,6 +132,15 @@ func getGitInfo() gitInfo {
 				log.Println("Unknown: ", entry.Status)
 			}
 		}
+		//Get current branch name
+		reference, err := repository.Head()
+		if err != nil {
+			log.Fatalln("error getting head: ", err)
+		}
+		defer reference.Free()
+
+		ref := strings.Split(reference.Name(), "/")
+		gi.branch = ref[len(ref)-1]
 	}
 	return gi
 }
