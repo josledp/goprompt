@@ -124,7 +124,7 @@ func getGitInfo() gitInfo {
 				got = true
 			}
 			if entry.Status&git2go.StatusConflicted > 0 {
-				log.Println("StatusCOnflicted")
+				log.Println("StatusConflicted")
 				gi.conflict = true
 				got = true
 			}
@@ -133,15 +133,29 @@ func getGitInfo() gitInfo {
 			}
 		}
 		//Get current branch name
-		reference, err := repository.Head()
+		localRef, err := repository.Head()
 		if err != nil {
 			log.Fatalln("error getting head: ", err)
 		}
-		defer reference.Free()
+		defer localRef.Free()
 
-		ref := strings.Split(reference.Name(), "/")
+		ref := strings.Split(localRef.Name(), "/")
 		gi.branch = ref[len(ref)-1]
 		//Get commits Ahead/Behind
+
+		localBranch := localRef.Branch()
+		if err != nil {
+			log.Fatalln("Error getting local branch: ", err)
+		}
+
+		remoteRef, err := localBranch.Upstream()
+		if err != nil {
+			return gi
+		}
+		if !remoteRef.Target().Equal(localRef.Target()) {
+			log.Println("Local & remore differ")
+		}
+		log.Println(remoteRef.Target().NCmp(localRef.Target(), 10))
 	}
 	return gi
 }
@@ -155,6 +169,7 @@ type gitInfo struct {
 	commitsBehind int
 	stashed       int
 	branch        string
+	upstream      bool
 }
 
 type termInfo struct {
