@@ -18,6 +18,7 @@ const (
 	upArrow     = "↑"
 	threePoints = "…"
 	dot         = "●"
+	check       = "✔"
 )
 
 func getPythonVirtualEnv() string {
