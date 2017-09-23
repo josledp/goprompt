@@ -276,7 +276,9 @@ func makePrompt(ti termInfo) string {
 		userInfo = termcolor.EscapedFormat(ti.hostname, termcolor.Bold, termcolor.FgGreen)
 	}
 	pwdInfo = termcolor.EscapedFormat(ti.pwd, termcolor.Bold, termcolor.FgBlue)
-	virtualEnvInfo = termcolor.EscapedFormat(ti.virtualEnv, termcolor.FgBlue)
+	if ti.virtualEnv != "" {
+		virtualEnvInfo = termcolor.EscapedFormat(ti.virtualEnv, termcolor.FgBlue)
+	}
 	if ti.gi.branch != "" {
 		gitInfo = " " + termcolor.EscapedFormat(ti.gi.branch, termcolor.FgMagenta)
 		space := " "
