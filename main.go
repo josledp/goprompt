@@ -1,7 +1,9 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
@@ -20,6 +22,8 @@ const (
 	dot         = "●"
 	check       = "✔"
 )
+
+var logger *log.Logger
 
 func getPythonVirtualEnv() string {
 	virtualEnv, ve := os.LookupEnv("VIRTUAL_ENV")
@@ -66,70 +70,70 @@ func getGitInfo() gitInfo {
 			entry, _ := repostate.ByIndex(i)
 			got := false
 			if entry.Status&git2go.StatusCurrent > 0 {
-				log.Println("StatusCurrent")
+				logger.Println("StatusCurrent")
 				got = true
 			}
 			if entry.Status&git2go.StatusIndexNew > 0 {
-				log.Println("StatusIndexNew")
+				logger.Println("StatusIndexNew")
 				gi.staged++
 				got = true
 			}
 			if entry.Status&git2go.StatusIndexModified > 0 {
-				log.Println("StatusIndexModified")
+				logger.Println("StatusIndexModified")
 				gi.staged++
 				got = true
 			}
 			if entry.Status&git2go.StatusIndexDeleted > 0 {
-				log.Println("StatusIndexDeleted")
+				logger.Println("StatusIndexDeleted")
 				gi.staged++
 				got = true
 			}
 			if entry.Status&git2go.StatusIndexRenamed > 0 {
-				log.Println("StatusIndexRenamed")
+				logger.Println("StatusIndexRenamed")
 				gi.staged++
 				got = true
 			}
 			if entry.Status&git2go.StatusIndexTypeChange > 0 {
-				log.Println("StatusIndexTypeChange")
+				logger.Println("StatusIndexTypeChange")
 				gi.staged++
 				got = true
 			}
 			if entry.Status&git2go.StatusWtNew > 0 {
-				log.Println("StatusWtNew")
+				logger.Println("StatusWtNew")
 				gi.untracked++
 				got = true
 			}
 			if entry.Status&git2go.StatusWtModified > 0 {
-				log.Println("StatusWtModified")
+				logger.Println("StatusWtModified")
 				gi.changed++
 				got = true
 			}
 			if entry.Status&git2go.StatusWtDeleted > 0 {
-				log.Println("StatusWtDeleted")
+				logger.Println("StatusWtDeleted")
 				gi.changed++
 				got = true
 			}
 			if entry.Status&git2go.StatusWtTypeChange > 0 {
-				log.Println("StatusWtTypeChange")
+				logger.Println("StatusWtTypeChange")
 				gi.changed++
 				got = true
 			}
 			if entry.Status&git2go.StatusWtRenamed > 0 {
-				log.Println("StatusWtRenamed")
+				logger.Println("StatusWtRenamed")
 				gi.changed++
 				got = true
 			}
 			if entry.Status&git2go.StatusIgnored > 0 {
-				log.Println("StatusIgnored")
+				logger.Println("StatusIgnored")
 				got = true
 			}
 			if entry.Status&git2go.StatusConflicted > 0 {
-				log.Println("StatusConflicted")
+				logger.Println("StatusConflicted")
 				gi.conflict = true
 				got = true
 			}
 			if !got {
-				log.Println("Unknown: ", entry.Status)
+				logger.Println("Unknown: ", entry.Status)
 			}
 		}
 		//Get current branch name
@@ -153,20 +157,46 @@ func getGitInfo() gitInfo {
 			defer remoteRef.Free()
 
 			if !remoteRef.Target().Equal(localRef.Target()) {
-				log.Println("Local & remore differ:", remoteRef.Target().String(), localRef.Target().String())
+				logger.Println("Local & remore differ:", remoteRef.Target().String(), localRef.Target().String())
 				//git rev-list --left-right localRef...remoteRef
 				oids, err := repository.MergeBases(localRef.Target(), remoteRef.Target())
 				if err != nil {
 					log.Fatalln("Error getting merge bases")
 				}
-				for _, oid := range oids {
-					log.Println(oid.String())
-				}
+
+				gi.commitsAhead = gitCount(repository, localRef.Target(), oids)
+				gi.commitsBehind = gitCount(repository, remoteRef.Target(), oids)
+				logger.Println(gi.commitsAhead, gi.commitsBehind)
 			}
 		}
 
 	}
 	return gi
+}
+
+func gitCount(r *git2go.Repository, oid *git2go.Oid, until []*git2go.Oid) int {
+	c, err := r.LookupCommit(oid)
+	if err != nil {
+		log.Fatalln("Error getting commit from oid ", oid, ": ", err)
+	}
+	mUntil := make(map[string]struct{})
+	for _, u := range until {
+		mUntil[u.String()] = struct{}{}
+	}
+	return _gitCount(r, c, mUntil)
+
+}
+func _gitCount(r *git2go.Repository, c *git2go.Commit, until map[string]struct{}) int {
+	var s int
+	for i := uint(0); i < c.ParentCount(); i++ {
+		s++
+		pc := c.ParentId(i)
+		if _, ok := until[pc.String()]; !ok {
+			s += _gitCount(r, c.Parent(i), until)
+		}
+
+	}
+	return s
 }
 
 type gitInfo struct {
@@ -193,7 +223,15 @@ type termInfo struct {
 
 func main() {
 	var err error
+	var debug bool
 
+	flag.BoolVar(&debug, "debug", false, "enable debug messages")
+	flag.Parse()
+	logger = log.New(os.Stderr, "", log.LstdFlags)
+
+	if !debug {
+		logger.SetOutput(ioutil.Discard)
+	}
 	ti := termInfo{}
 	//Get basicinfo
 	ti.pwd, err = os.Getwd()
@@ -228,7 +266,7 @@ func main() {
 
 func makePrompt(ti termInfo) string {
 	//Formatting
-	var userInfo, pwdInfo, virtualEnvInfo, awsInfo string
+	var userInfo, pwdInfo, virtualEnvInfo, awsInfo, gitInfo string
 	promptEnd := "$"
 
 	if ti.user == "root" {
@@ -239,7 +277,32 @@ func makePrompt(ti termInfo) string {
 	}
 	pwdInfo = termcolor.EscapedFormat(ti.pwd, termcolor.Bold, termcolor.FgBlue)
 	virtualEnvInfo = termcolor.EscapedFormat(ti.virtualEnv, termcolor.FgBlue)
-
+	if ti.gi.branch != "" {
+		gitInfo = " " + termcolor.EscapedFormat(ti.gi.branch, termcolor.FgMagenta)
+		space := " "
+		if ti.gi.commitsBehind > 0 {
+			gitInfo += space + downArrow + "·" + strconv.Itoa(ti.gi.commitsBehind)
+			space = ""
+		}
+		if ti.gi.commitsAhead > 0 {
+			gitInfo += space + upArrow + "·" + strconv.Itoa(ti.gi.commitsAhead)
+			space = ""
+		}
+		if !ti.gi.upstream {
+			gitInfo += space + "*"
+			space = ""
+		}
+		gitInfo += "|"
+		if ti.gi.staged > 0 {
+			gitInfo += termcolor.EscapedFormat(dot+strconv.Itoa(ti.gi.staged), termcolor.FgCyan)
+		}
+		if ti.gi.changed > 0 {
+			gitInfo += termcolor.EscapedFormat("+"+strconv.Itoa(ti.gi.changed), termcolor.FgCyan)
+		}
+		if ti.gi.untracked > 0 {
+			gitInfo += termcolor.EscapedFormat(threePoints+strconv.Itoa(ti.gi.untracked), termcolor.FgCyan)
+		}
+	}
 	if ti.awsRole != "" {
 		t := termcolor.FgGreen
 		d := time.Until(ti.awsExpire).Seconds()
@@ -251,5 +314,5 @@ func makePrompt(ti termInfo) string {
 		awsInfo = termcolor.EscapedFormat(ti.awsRole, t) + "|"
 	}
 
-	return fmt.Sprintf("%s[%s%s %s]%s ", virtualEnvInfo, awsInfo, userInfo, pwdInfo, promptEnd)
+	return fmt.Sprintf("%s[%s%s %s%s]%s ", virtualEnvInfo, awsInfo, userInfo, pwdInfo, gitInfo, promptEnd)
 }
