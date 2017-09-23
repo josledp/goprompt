@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -21,6 +20,7 @@ const (
 	threePoints = "…"
 	dot         = "●"
 	check       = "✔"
+	flag        = "⚑"
 )
 
 var logger *log.Logger
