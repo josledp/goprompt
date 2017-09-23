@@ -170,7 +170,12 @@ func getGitInfo() gitInfo {
 				logger.Println(gi.commitsAhead, gi.commitsBehind)
 			}
 		}
-
+		// stash
+		repository.Stashes.Foreach(func(i int, m string, o *git2go.Oid) error {
+			gi.stashed = i + 1
+			return nil
+		})
+		logger.Println("Stashes: ", gi.stashed)
 	}
 	return gi
 }
