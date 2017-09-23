@@ -154,6 +154,7 @@ func getGitInfo() gitInfo {
 
 		remoteRef, err := localBranch.Upstream()
 		if err == nil {
+			gi.upstream = true
 			defer remoteRef.Free()
 
 			if !remoteRef.Target().Equal(localRef.Target()) {
@@ -176,6 +177,7 @@ func getGitInfo() gitInfo {
 
 func gitCount(r *git2go.Repository, oid *git2go.Oid, until []*git2go.Oid) int {
 	c, err := r.LookupCommit(oid)
+	defer c.Free()
 	if err != nil {
 		log.Fatalln("Error getting commit from oid ", oid, ": ", err)
 	}
@@ -212,6 +214,7 @@ type gitInfo struct {
 }
 
 type termInfo struct {
+	lastrc     string
 	pwd        string
 	user       string
 	hostname   string
@@ -247,6 +250,7 @@ func main() {
 	if err != nil {
 		log.Fatalln("Unable to get hostname", err)
 	}
+	ti.lastrc = os.Getenv("LAST_COMMAND_RC")
 
 	//Get Python VirtualEnv info
 	ti.virtualEnv = getPythonVirtualEnv()
@@ -266,7 +270,8 @@ func main() {
 
 func makePrompt(ti termInfo) string {
 	//Formatting
-	var userInfo, pwdInfo, virtualEnvInfo, awsInfo, gitInfo string
+	var userInfo, lastCommandInfo, pwdInfo, virtualEnvInfo, awsInfo, gitInfo string
+
 	promptEnd := "$"
 
 	if ti.user == "root" {
@@ -275,6 +280,10 @@ func makePrompt(ti termInfo) string {
 	} else {
 		userInfo = termcolor.EscapedFormat(ti.hostname, termcolor.Bold, termcolor.FgGreen)
 	}
+	if ti.lastrc != "" {
+		lastCommandInfo = termcolor.EscapedFormat(ti.lastrc, termcolor.FgHiYellow) + " "
+	}
+
 	pwdInfo = termcolor.EscapedFormat(ti.pwd, termcolor.Bold, termcolor.FgBlue)
 	if ti.virtualEnv != "" {
 		virtualEnvInfo = termcolor.EscapedFormat(ti.virtualEnv, termcolor.FgBlue)
@@ -295,14 +304,21 @@ func makePrompt(ti termInfo) string {
 			space = ""
 		}
 		gitInfo += "|"
+		synced := true
 		if ti.gi.staged > 0 {
 			gitInfo += termcolor.EscapedFormat(dot+strconv.Itoa(ti.gi.staged), termcolor.FgCyan)
+			synced = false
 		}
 		if ti.gi.changed > 0 {
 			gitInfo += termcolor.EscapedFormat("+"+strconv.Itoa(ti.gi.changed), termcolor.FgCyan)
+			synced = false
 		}
 		if ti.gi.untracked > 0 {
 			gitInfo += termcolor.EscapedFormat(threePoints+strconv.Itoa(ti.gi.untracked), termcolor.FgCyan)
+			synced = false
+		}
+		if synced {
+			gitInfo += termcolor.EscapedFormat(check, termcolor.FgHiGreen)
 		}
 	}
 	if ti.awsRole != "" {
@@ -316,5 +332,5 @@ func makePrompt(ti termInfo) string {
 		awsInfo = termcolor.EscapedFormat(ti.awsRole, t) + "|"
 	}
 
-	return fmt.Sprintf("%s[%s%s %s%s]%s ", virtualEnvInfo, awsInfo, userInfo, pwdInfo, gitInfo, promptEnd)
+	return fmt.Sprintf("%s[%s%s %s%s%s]%s ", virtualEnvInfo, awsInfo, userInfo, lastCommandInfo, pwdInfo, gitInfo, promptEnd)
 }
