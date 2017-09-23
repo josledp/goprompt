@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -15,12 +16,12 @@ import (
 )
 
 const (
-	downArrow   = "↓"
-	upArrow     = "↑"
-	threePoints = "…"
-	dot         = "●"
-	check       = "✔"
-	flag        = "⚑"
+	s_DownArrow = "↓"
+	s_UpArrow   = "↑"
+	s_ThreeDots = "…"
+	s_Dot       = "●"
+	s_Check     = "✔"
+	s_Flag      = "⚑"
 )
 
 var logger *log.Logger
@@ -297,11 +298,11 @@ func makePrompt(ti termInfo) string {
 		gitInfo = " " + termcolor.EscapedFormat(ti.gi.branch, termcolor.FgMagenta)
 		space := " "
 		if ti.gi.commitsBehind > 0 {
-			gitInfo += space + downArrow + "·" + strconv.Itoa(ti.gi.commitsBehind)
+			gitInfo += space + s_DownArrow + "·" + strconv.Itoa(ti.gi.commitsBehind)
 			space = ""
 		}
 		if ti.gi.commitsAhead > 0 {
-			gitInfo += space + upArrow + "·" + strconv.Itoa(ti.gi.commitsAhead)
+			gitInfo += space + s_UpArrow + "·" + strconv.Itoa(ti.gi.commitsAhead)
 			space = ""
 		}
 		if !ti.gi.upstream {
@@ -311,7 +312,7 @@ func makePrompt(ti termInfo) string {
 		gitInfo += "|"
 		synced := true
 		if ti.gi.staged > 0 {
-			gitInfo += termcolor.EscapedFormat(dot+strconv.Itoa(ti.gi.staged), termcolor.FgCyan)
+			gitInfo += termcolor.EscapedFormat(s_Dot+strconv.Itoa(ti.gi.staged), termcolor.FgCyan)
 			synced = false
 		}
 		if ti.gi.changed > 0 {
@@ -319,11 +320,14 @@ func makePrompt(ti termInfo) string {
 			synced = false
 		}
 		if ti.gi.untracked > 0 {
-			gitInfo += termcolor.EscapedFormat(threePoints+strconv.Itoa(ti.gi.untracked), termcolor.FgCyan)
+			gitInfo += termcolor.EscapedFormat(s_ThreeDots+strconv.Itoa(ti.gi.untracked), termcolor.FgCyan)
 			synced = false
 		}
+		if ti.gi.stashed > 0 {
+			gitInfo += termcolor.EscapedFormat(s_Flag+strconv.Itoa(ti.gi.stashed), termcolor.FgHiMagenta)
+		}
 		if synced {
-			gitInfo += termcolor.EscapedFormat(check, termcolor.FgHiGreen)
+			gitInfo += termcolor.EscapedFormat(s_Check, termcolor.FgHiGreen)
 		}
 	}
 	if ti.awsRole != "" {
