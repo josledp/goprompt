@@ -140,7 +140,10 @@ func getGitInfo() gitInfo {
 		//Get current branch name
 		localRef, err := repository.Head()
 		if err != nil {
-			log.Fatalln("error getting head: ", err)
+			//Probably there are no commits yet
+			log.Println(localRef)
+			return gi
+			//log.Fatalln("error getting head: ", err)
 		}
 		defer localRef.Free()
 
@@ -160,15 +163,13 @@ func getGitInfo() gitInfo {
 
 			if !remoteRef.Target().Equal(localRef.Target()) {
 				logger.Println("Local & remore differ:", remoteRef.Target().String(), localRef.Target().String())
-				//git rev-list --left-right localRef...remoteRef
-				oids, err := repository.MergeBases(localRef.Target(), remoteRef.Target())
 				if err != nil {
 					log.Fatalln("Error getting merge bases")
 				}
-
-				gi.commitsAhead = gitCount(repository, localRef.Target(), oids)
-				gi.commitsBehind = gitCount(repository, remoteRef.Target(), oids)
-				logger.Println(gi.commitsAhead, gi.commitsBehind)
+				gi.commitsAhead, gi.commitsBehind, err = repository.AheadBehind(localRef.Target(), remoteRef.Target())
+				if err != nil {
+					log.Fatalln("Error getting commits ahead/behind")
+				}
 			}
 		}
 		// stash
@@ -179,32 +180,6 @@ func getGitInfo() gitInfo {
 		logger.Println("Stashes: ", gi.stashed)
 	}
 	return gi
-}
-
-func gitCount(r *git2go.Repository, oid *git2go.Oid, until []*git2go.Oid) int {
-	c, err := r.LookupCommit(oid)
-	defer c.Free()
-	if err != nil {
-		log.Fatalln("Error getting commit from oid ", oid, ": ", err)
-	}
-	mUntil := make(map[string]struct{})
-	for _, u := range until {
-		mUntil[u.String()] = struct{}{}
-	}
-	return _gitCount(r, c, mUntil)
-
-}
-func _gitCount(r *git2go.Repository, c *git2go.Commit, until map[string]struct{}) int {
-	var s int
-	for i := uint(0); i < c.ParentCount(); i++ {
-		s++
-		pc := c.ParentId(i)
-		if _, ok := until[pc.String()]; !ok {
-			s += _gitCount(r, c.Parent(i), until)
-		}
-
-	}
-	return s
 }
 
 type gitInfo struct {
