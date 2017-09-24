@@ -140,8 +140,7 @@ func getGitInfo() gitInfo {
 		//Get current branch name
 		localRef, err := repository.Head()
 		if err != nil {
-			//Probably there are no commits yet
-			log.Println(localRef)
+			//Probably there are no commits yet. How to know the current branch??
 			return gi
 			//log.Fatalln("error getting head: ", err)
 		}
