@@ -26,6 +26,33 @@ const (
 
 var logger *log.Logger
 
+type gitInfo struct {
+	conflict      bool
+	changed       int
+	staged        int
+	untracked     int
+	commitsAhead  int
+	commitsBehind int
+	stashed       int
+	branch        string
+	upstream      bool
+}
+
+type awsInfo struct {
+	role   string
+	expire time.Time
+}
+
+type termInfo struct {
+	lastrc     string
+	pwd        string
+	user       string
+	hostname   string
+	virtualEnv string
+	aws        awsInfo
+	git        gitInfo
+}
+
 func getPythonVirtualEnv() string {
 	virtualEnv, ve := os.LookupEnv("VIRTUAL_ENV")
 	if ve {
@@ -35,7 +62,8 @@ func getPythonVirtualEnv() string {
 	return virtualEnv
 }
 
-func getAwsInfo() string {
+func getAwsInfo() awsInfo {
+	ai := awsInfo{}
 	role := os.Getenv("AWS_ROLE")
 	if role != "" {
 		tmp := strings.Split(role, ":")
@@ -43,7 +71,11 @@ func getAwsInfo() string {
 		tmp = strings.Split(tmp[1], "-")
 		role += ":" + tmp[2]
 	}
-	return role
+	ai.role = role
+	iExpire, _ := strconv.ParseInt(os.Getenv("AWS_SESSION_EXPIRE"), 10, 0)
+	ai.expire = time.Unix(iExpire, int64(0))
+
+	return ai
 }
 
 func getGitInfo() gitInfo {
@@ -182,29 +214,6 @@ func getGitInfo() gitInfo {
 	return gi
 }
 
-type gitInfo struct {
-	conflict      bool
-	changed       int
-	staged        int
-	untracked     int
-	commitsAhead  int
-	commitsBehind int
-	stashed       int
-	branch        string
-	upstream      bool
-}
-
-type termInfo struct {
-	lastrc     string
-	pwd        string
-	user       string
-	hostname   string
-	virtualEnv string
-	awsRole    string
-	awsExpire  time.Time
-	gi         gitInfo
-}
-
 func getTermInfo() termInfo {
 	var err error
 
@@ -222,16 +231,6 @@ func getTermInfo() termInfo {
 	}
 	ti.lastrc = os.Getenv("LAST_COMMAND_RC")
 
-	//Get Python VirtualEnv info
-	ti.virtualEnv = getPythonVirtualEnv()
-
-	//AWS
-	ti.awsRole = getAwsInfo()
-	iExpire, _ := strconv.ParseInt(os.Getenv("AWS_SESSION_EXPIRE"), 10, 0)
-	ti.awsExpire = time.Unix(iExpire, int64(0))
-
-	//Get git information
-	ti.gi = getGitInfo()
 	return ti
 
 }
@@ -255,7 +254,17 @@ func main() {
 		logger.SetOutput(ioutil.Discard)
 	}
 	ti := getTermInfo()
+	//Get Python VirtualEnv info
+	ti.virtualEnv = getPythonVirtualEnv()
+
+	//AWS
+	ti.aws = getAwsInfo()
+
+	//Get git information
+	ti.git = getGitInfo()
+
 	fmt.Println(makePrompt(style, ti))
+
 }
 
 func makePrompt(style string, ti termInfo) string {
@@ -297,51 +306,51 @@ func makePromptEvermeet(ti termInfo) string {
 	if ti.virtualEnv != "" {
 		virtualEnvInfo = termcolor.EscapedFormat(ti.virtualEnv, termcolor.FgBlue)
 	}
-	if ti.gi.branch != "" {
-		gitInfo = " " + termcolor.EscapedFormat(ti.gi.branch, termcolor.FgMagenta)
+	if ti.git.branch != "" {
+		gitInfo = " " + termcolor.EscapedFormat(ti.git.branch, termcolor.FgMagenta)
 		space := " "
-		if ti.gi.commitsBehind > 0 {
-			gitInfo += space + s_DownArrow + "·" + strconv.Itoa(ti.gi.commitsBehind)
+		if ti.git.commitsBehind > 0 {
+			gitInfo += space + s_DownArrow + "·" + strconv.Itoa(ti.git.commitsBehind)
 			space = ""
 		}
-		if ti.gi.commitsAhead > 0 {
-			gitInfo += space + s_UpArrow + "·" + strconv.Itoa(ti.gi.commitsAhead)
+		if ti.git.commitsAhead > 0 {
+			gitInfo += space + s_UpArrow + "·" + strconv.Itoa(ti.git.commitsAhead)
 			space = ""
 		}
-		if !ti.gi.upstream {
+		if !ti.git.upstream {
 			gitInfo += space + "*"
 			space = ""
 		}
 		gitInfo += "|"
 		synced := true
-		if ti.gi.staged > 0 {
-			gitInfo += termcolor.EscapedFormat(s_Dot+strconv.Itoa(ti.gi.staged), termcolor.FgCyan)
+		if ti.git.staged > 0 {
+			gitInfo += termcolor.EscapedFormat(s_Dot+strconv.Itoa(ti.git.staged), termcolor.FgCyan)
 			synced = false
 		}
-		if ti.gi.changed > 0 {
-			gitInfo += termcolor.EscapedFormat("+"+strconv.Itoa(ti.gi.changed), termcolor.FgCyan)
+		if ti.git.changed > 0 {
+			gitInfo += termcolor.EscapedFormat("+"+strconv.Itoa(ti.git.changed), termcolor.FgCyan)
 			synced = false
 		}
-		if ti.gi.untracked > 0 {
-			gitInfo += termcolor.EscapedFormat(s_ThreeDots+strconv.Itoa(ti.gi.untracked), termcolor.FgCyan)
+		if ti.git.untracked > 0 {
+			gitInfo += termcolor.EscapedFormat(s_ThreeDots+strconv.Itoa(ti.git.untracked), termcolor.FgCyan)
 			synced = false
 		}
-		if ti.gi.stashed > 0 {
-			gitInfo += termcolor.EscapedFormat(s_Flag+strconv.Itoa(ti.gi.stashed), termcolor.FgHiMagenta)
+		if ti.git.stashed > 0 {
+			gitInfo += termcolor.EscapedFormat(s_Flag+strconv.Itoa(ti.git.stashed), termcolor.FgHiMagenta)
 		}
 		if synced {
 			gitInfo += termcolor.EscapedFormat(s_Check, termcolor.FgHiGreen)
 		}
 	}
-	if ti.awsRole != "" {
+	if ti.aws.role != "" {
 		t := termcolor.FgGreen
-		d := time.Until(ti.awsExpire).Seconds()
+		d := time.Until(ti.aws.expire).Seconds()
 		if d < 0 {
 			t = termcolor.FgRed
 		} else if d < 600 {
 			t = termcolor.FgYellow
 		}
-		awsInfo = termcolor.EscapedFormat(ti.awsRole, t) + "|"
+		awsInfo = termcolor.EscapedFormat(ti.aws.role, t) + "|"
 	}
 
 	return fmt.Sprintf("%s[%s%s %s%s%s]%s ", virtualEnvInfo, awsInfo, userInfo, lastCommandInfo, pwdInfo, gitInfo, promptEnd)
