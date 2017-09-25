@@ -141,7 +141,7 @@ func getGitInfo() gitInfo {
 		localRef, err := repository.Head()
 		if err != nil {
 			//Probably there are no commits yet. How to know the current branch??
-			gi.branch = "unknown"
+			gi.branch = "No_Commits"
 			return gi
 			//log.Fatalln("error getting head: ", err)
 		}
@@ -205,23 +205,12 @@ type termInfo struct {
 	gi         gitInfo
 }
 
-func main() {
+func getTermInfo() termInfo {
 	var err error
-	var debug bool
 
-	flag.BoolVar(&debug, "debug", false, "enable debug messages")
-	flag.Parse()
-	logger = log.New(os.Stderr, "", log.LstdFlags)
-
-	if !debug {
-		logger.SetOutput(ioutil.Discard)
-	}
 	ti := termInfo{}
 	//Get basicinfo
-	ti.pwd, err = os.Getwd()
-	if err != nil {
-		log.Fatalln("Unable to get current path", err)
-	}
+	ti.pwd = os.Getenv("PWD")
 	home := os.Getenv("HOME")
 	if home != "" {
 		ti.pwd = strings.Replace(ti.pwd, home, "~", -1)
@@ -242,14 +231,53 @@ func main() {
 	ti.awsExpire = time.Unix(iExpire, int64(0))
 
 	//Get git information
-	_ = git2go.Repository{}
-
 	ti.gi = getGitInfo()
+	return ti
 
-	fmt.Println(makePrompt(ti))
+}
+func main() {
+	var debug bool
+	var style string
+
+	flag.BoolVar(&debug, "debug", false, "enable debug messages")
+	flag.StringVar(&style, "style", "Evermeet", "Select style: Evermeet, Mac, Fedora")
+	flag.Parse()
+	switch style {
+	case "Evermeet":
+	case "Mac":
+	case "Fedora":
+	default:
+		fmt.Fprintln(os.Stderr, "Invalid style. Valid styles: Evermmet, Mac, Fedora")
+	}
+	logger = log.New(os.Stderr, "", log.LstdFlags)
+
+	if !debug {
+		logger.SetOutput(ioutil.Discard)
+	}
+	ti := getTermInfo()
+	fmt.Println(makePrompt(style, ti))
 }
 
-func makePrompt(ti termInfo) string {
+func makePrompt(style string, ti termInfo) string {
+	switch style {
+	case "Evermeet":
+		return makePromptEvermeet(ti)
+	case "Mac":
+		return makePromptMac(ti)
+	case "Fedora":
+		return makePromptFedora(ti)
+	}
+	return "Not suppported"
+}
+func makePromptMac(ti termInfo) string {
+	return "Not implemented"
+}
+
+func makePromptFedora(ti termInfo) string {
+	return "Not implemented"
+}
+
+func makePromptEvermeet(ti termInfo) string {
 	//Formatting
 	var userInfo, lastCommandInfo, pwdInfo, virtualEnvInfo, awsInfo, gitInfo string
 
