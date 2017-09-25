@@ -49,15 +49,19 @@ type termInfo struct {
 	user       string
 	hostname   string
 	virtualEnv string
-	aws        awsInfo
-	git        gitInfo
+}
+
+type promptInfo struct {
+	term termInfo
+	aws  awsInfo
+	git  gitInfo
 }
 
 func getPythonVirtualEnv() string {
 	virtualEnv, ve := os.LookupEnv("VIRTUAL_ENV")
 	if ve {
 		ave := strings.Split(virtualEnv, "/")
-		virtualEnv = fmt.Sprintf("(%s) ", ave[len(ave)-1])
+		virtualEnv = ave[len(ave)-1]
 	}
 	return virtualEnv
 }
@@ -215,8 +219,6 @@ func getGitInfo() gitInfo {
 }
 
 func getTermInfo() termInfo {
-	var err error
-
 	ti := termInfo{}
 	//Get basicinfo
 	ti.pwd = os.Getenv("PWD")
@@ -225,11 +227,12 @@ func getTermInfo() termInfo {
 		ti.pwd = strings.Replace(ti.pwd, home, "~", -1)
 	}
 	ti.user = os.Getenv("USER")
-	ti.hostname, err = os.Hostname()
-	if err != nil {
-		log.Fatalln("Unable to get hostname", err)
-	}
+	ti.hostname = os.Getenv("HOSTNAME")
+
 	ti.lastrc = os.Getenv("LAST_COMMAND_RC")
+
+	//Get Python VirtualEnv info
+	ti.virtualEnv = getPythonVirtualEnv()
 
 	return ti
 
@@ -254,103 +257,103 @@ func main() {
 		logger.SetOutput(ioutil.Discard)
 	}
 	ti := getTermInfo()
-	//Get Python VirtualEnv info
-	ti.virtualEnv = getPythonVirtualEnv()
 
 	//AWS
-	ti.aws = getAwsInfo()
+	ai := getAwsInfo()
 
 	//Get git information
-	ti.git = getGitInfo()
+	gi := getGitInfo()
 
-	fmt.Println(makePrompt(style, ti))
+	pi := promptInfo{term: ti, git: gi, aws: ai}
+
+	fmt.Println(makePrompt(style, pi))
 
 }
 
-func makePrompt(style string, ti termInfo) string {
+func makePrompt(style string, pi promptInfo) string {
 	switch style {
 	case "Evermeet":
-		return makePromptEvermeet(ti)
+		return makePromptEvermeet(pi)
 	case "Mac":
-		return makePromptMac(ti)
+		return makePromptMac(pi)
 	case "Fedora":
-		return makePromptFedora(ti)
+		return makePromptFedora(pi)
 	}
 	return "Not suppported"
 }
-func makePromptMac(ti termInfo) string {
+func makePromptMac(pi promptInfo) string {
 	return "Not implemented"
 }
 
-func makePromptFedora(ti termInfo) string {
+func makePromptFedora(pi promptInfo) string {
 	return "Not implemented"
 }
 
-func makePromptEvermeet(ti termInfo) string {
+func makePromptEvermeet(pi promptInfo) string {
 	//Formatting
 	var userInfo, lastCommandInfo, pwdInfo, virtualEnvInfo, awsInfo, gitInfo string
 
 	promptEnd := "$"
 
-	if ti.user == "root" {
-		userInfo = termcolor.EscapedFormat(ti.hostname, termcolor.Bold, termcolor.FgRed)
+	if pi.term.user == "root" {
+		userInfo = termcolor.EscapedFormat(pi.term.hostname, termcolor.Bold, termcolor.FgRed)
 		promptEnd = "#"
 	} else {
-		userInfo = termcolor.EscapedFormat(ti.hostname, termcolor.Bold, termcolor.FgGreen)
+		userInfo = termcolor.EscapedFormat(pi.term.hostname, termcolor.Bold, termcolor.FgGreen)
 	}
-	if ti.lastrc != "" {
-		lastCommandInfo = termcolor.EscapedFormat(ti.lastrc, termcolor.FgHiYellow) + " "
+	if pi.term.lastrc != "" {
+		lastCommandInfo = termcolor.EscapedFormat(pi.term.lastrc, termcolor.FgHiYellow) + " "
 	}
 
-	pwdInfo = termcolor.EscapedFormat(ti.pwd, termcolor.Bold, termcolor.FgBlue)
-	if ti.virtualEnv != "" {
-		virtualEnvInfo = termcolor.EscapedFormat(ti.virtualEnv, termcolor.FgBlue)
+	pwdInfo = termcolor.EscapedFormat(pi.term.pwd, termcolor.Bold, termcolor.FgBlue)
+	if pi.term.virtualEnv != "" {
+		virtualEnvInfo = termcolor.EscapedFormat(fmt.Sprintf("(%s) ", pi.term.virtualEnv), termcolor.FgBlue)
 	}
-	if ti.git.branch != "" {
-		gitInfo = " " + termcolor.EscapedFormat(ti.git.branch, termcolor.FgMagenta)
+	if pi.git.branch != "" {
+		gitInfo = " " + termcolor.EscapedFormat(pi.git.branch, termcolor.FgMagenta)
 		space := " "
-		if ti.git.commitsBehind > 0 {
-			gitInfo += space + s_DownArrow + "·" + strconv.Itoa(ti.git.commitsBehind)
+		if pi.git.commitsBehind > 0 {
+			gitInfo += space + s_DownArrow + "·" + strconv.Itoa(pi.git.commitsBehind)
 			space = ""
 		}
-		if ti.git.commitsAhead > 0 {
-			gitInfo += space + s_UpArrow + "·" + strconv.Itoa(ti.git.commitsAhead)
+		if pi.git.commitsAhead > 0 {
+			gitInfo += space + s_UpArrow + "·" + strconv.Itoa(pi.git.commitsAhead)
 			space = ""
 		}
-		if !ti.git.upstream {
+		if !pi.git.upstream {
 			gitInfo += space + "*"
 			space = ""
 		}
 		gitInfo += "|"
 		synced := true
-		if ti.git.staged > 0 {
-			gitInfo += termcolor.EscapedFormat(s_Dot+strconv.Itoa(ti.git.staged), termcolor.FgCyan)
+		if pi.git.staged > 0 {
+			gitInfo += termcolor.EscapedFormat(s_Dot+strconv.Itoa(pi.git.staged), termcolor.FgCyan)
 			synced = false
 		}
-		if ti.git.changed > 0 {
-			gitInfo += termcolor.EscapedFormat("+"+strconv.Itoa(ti.git.changed), termcolor.FgCyan)
+		if pi.git.changed > 0 {
+			gitInfo += termcolor.EscapedFormat("+"+strconv.Itoa(pi.git.changed), termcolor.FgCyan)
 			synced = false
 		}
-		if ti.git.untracked > 0 {
-			gitInfo += termcolor.EscapedFormat(s_ThreeDots+strconv.Itoa(ti.git.untracked), termcolor.FgCyan)
+		if pi.git.untracked > 0 {
+			gitInfo += termcolor.EscapedFormat(s_ThreeDots+strconv.Itoa(pi.git.untracked), termcolor.FgCyan)
 			synced = false
 		}
-		if ti.git.stashed > 0 {
-			gitInfo += termcolor.EscapedFormat(s_Flag+strconv.Itoa(ti.git.stashed), termcolor.FgHiMagenta)
+		if pi.git.stashed > 0 {
+			gitInfo += termcolor.EscapedFormat(s_Flag+strconv.Itoa(pi.git.stashed), termcolor.FgHiMagenta)
 		}
 		if synced {
 			gitInfo += termcolor.EscapedFormat(s_Check, termcolor.FgHiGreen)
 		}
 	}
-	if ti.aws.role != "" {
+	if pi.aws.role != "" {
 		t := termcolor.FgGreen
-		d := time.Until(ti.aws.expire).Seconds()
+		d := time.Until(pi.aws.expire).Seconds()
 		if d < 0 {
 			t = termcolor.FgRed
 		} else if d < 600 {
 			t = termcolor.FgYellow
 		}
-		awsInfo = termcolor.EscapedFormat(ti.aws.role, t) + "|"
+		awsInfo = termcolor.EscapedFormat(pi.aws.role, t) + "|"
 	}
 
 	return fmt.Sprintf("%s[%s%s %s%s%s]%s ", virtualEnvInfo, awsInfo, userInfo, lastCommandInfo, pwdInfo, gitInfo, promptEnd)
