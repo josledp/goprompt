@@ -52,34 +52,70 @@ func TestTermInfo(t *testing.T) {
 }
 
 func TestMakeEverteen(t *testing.T) {
-	pi := promptInfo{
-		term: termInfo{
-			hostname:   "hosttest",
-			lastrc:     "0",
-			pwd:        "~/home",
-			user:       "testuser",
-			virtualEnv: "venv",
-		},
-		git: gitInfo{
-			branch:        "branch",
-			changed:       10,
-			untracked:     5,
-			stashed:       2,
-			staged:        4,
-			upstream:      true,
-			commitsAhead:  4,
-			commitsBehind: 2,
-		},
+	tt := []struct {
+		pi promptInfo
+		sb string
+	}{
+		{
+			pi: promptInfo{
+				term: termInfo{
+					hostname:   "hosttest",
+					lastrc:     "0",
+					pwd:        "~/home",
+					user:       "testuser",
+					virtualEnv: "venv",
+				},
+				git: gitInfo{
+					branch:        "branch",
+					changed:       10,
+					untracked:     5,
+					stashed:       2,
+					staged:        4,
+					upstream:      true,
+					commitsAhead:  4,
+					commitsBehind: 2,
+				},
 
-		aws: awsInfo{
-			role:   "role:test",
-			expire: time.Unix(int64(1506345326), int64(0)),
+				aws: awsInfo{
+					role:   "role:test",
+					expire: time.Unix(int64(1506345326), int64(0)),
+				},
+			},
+			sb: "\\[\\033[0m\\]\\[\\033[34m\\](venv) \\[\\033[0m\\][\\[\\033[0m\\]\\[\\033[31m\\]role:test\\[\\033[0m\\]|\\[\\033[0m\\]\\[\\033[1;32m\\]hosttest\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[93m\\]0\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[1;34m\\]~/home\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[35m\\]branch\\[\\033[0m\\] ↓·2↑·4|\\[\\033[0m\\]\\[\\033[36m\\]●4\\[\\033[0m\\]\\[\\033[0m\\]\\[\\033[36m\\]+10\\[\\033[0m\\]\\[\\033[0m\\]\\[\\033[36m\\]…5\\[\\033[0m\\]\\[\\033[0m\\]\\[\\033[95m\\]⚑2\\[\\033[0m\\]]$ ",
+		},
+		{
+			pi: promptInfo{
+				term: termInfo{
+					hostname:   "hosttest",
+					lastrc:     "0",
+					pwd:        "~/home",
+					user:       "testuser",
+					virtualEnv: "venv",
+				},
+				git: gitInfo{
+					branch:        "branch",
+					changed:       0,
+					untracked:     0,
+					stashed:       0,
+					staged:        0,
+					upstream:      true,
+					commitsAhead:  0,
+					commitsBehind: 0,
+				},
+
+				aws: awsInfo{
+					role:   "role:test",
+					expire: time.Unix(int64(1506345326), int64(0)),
+				},
+			},
+			sb: "\\[\\033[0m\\]\\[\\033[34m\\](venv) \\[\\033[0m\\][\\[\\033[0m\\]\\[\\033[31m\\]role:test\\[\\033[0m\\]|\\[\\033[0m\\]\\[\\033[1;32m\\]hosttest\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[93m\\]0\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[1;34m\\]~/home\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[35m\\]branch\\[\\033[0m\\]|\\[\\033[0m\\]\\[\\033[92m\\]✔\\[\\033[0m\\]]$ ",
 		},
 	}
-	shouldbe := "\\[\\033[0m\\]\\[\\033[34m\\](venv) \\[\\033[0m\\][\\[\\033[0m\\]\\[\\033[31m\\]role:test\\[\\033[0m\\]|\\[\\033[0m\\]\\[\\033[1;32m\\]hosttest\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[93m\\]0\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[1;34m\\]~/home\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[35m\\]branch\\[\\033[0m\\] ↓·2↑·4|\\[\\033[0m\\]\\[\\033[36m\\]●4\\[\\033[0m\\]\\[\\033[0m\\]\\[\\033[36m\\]+10\\[\\033[0m\\]\\[\\033[0m\\]\\[\\033[36m\\]…5\\[\\033[0m\\]\\[\\033[0m\\]\\[\\033[95m\\]⚑2\\[\\033[0m\\]]$"
-	prompt := makePromptEvermeet(pi)
-	if !cmp.Equal(prompt, shouldbe) {
-		t.Error(prompt)
-		t.Error(shouldbe)
+	for _, test := range tt {
+		prompt := makePromptEvermeet(test.pi)
+		if !cmp.Equal(prompt, test.sb) {
+			t.Errorf("error make Everteen prompt %v.\n It is: %s\n should be %s", test.pi, prompt, test.sb)
+		}
 	}
+
 }
