@@ -249,7 +249,6 @@ type promptOptions struct {
 func main() {
 	var debug bool
 	var po promptOptions
-	var style string
 
 	flag.BoolVar(&debug, "debug", false, "enable debug messages")
 	flag.StringVar(&po.style, "style", "Evermeet", "Select style: Evermeet, Mac, Fedora")
@@ -264,12 +263,12 @@ func main() {
 	fullpathSet := flag.CommandLine.LookupActual("color")
 	noFullpathSet := flag.CommandLine.LookupActual("color")*/
 
-	switch style {
+	switch po.style {
 	case "Evermeet":
 	case "Mac":
 	case "Fedora":
 	default:
-		fmt.Fprintln(os.Stderr, "Invalid style. Valid styles: Evermeet, Mac, Fedora")
+		fmt.Fprintln(os.Stderr, "Invalid style. Valid styles: Evermmet, Mac, Fedora")
 	}
 	logger = log.New(os.Stderr, "", log.LstdFlags)
 
@@ -286,7 +285,7 @@ func main() {
 
 	pi := promptInfo{term: ti, git: gi, aws: ai}
 
-	fmt.Println(makePrompt(style, pi))
+	fmt.Println(makePrompt(po.style, pi))
 
 }
 
