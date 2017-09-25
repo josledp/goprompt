@@ -227,7 +227,7 @@ func getTermInfo() termInfo {
 		ti.pwd = strings.Replace(ti.pwd, home, "~", -1)
 	}
 	ti.user = os.Getenv("USER")
-	ti.hostname = os.Getenv("HOSTNAME")
+	ti.hostname, _ = os.Hostname()
 
 	ti.lastrc = os.Getenv("LAST_COMMAND_RC")
 
