@@ -237,19 +237,39 @@ func getTermInfo() termInfo {
 	return ti
 
 }
+
+type promptOptions struct {
+	style      string
+	fullpath   bool
+	noFullpath bool
+	color      bool
+	noColor    bool
+}
+
 func main() {
 	var debug bool
+	var po promptOptions
 	var style string
 
 	flag.BoolVar(&debug, "debug", false, "enable debug messages")
-	flag.StringVar(&style, "style", "Evermeet", "Select style: Evermeet, Mac, Fedora")
+	flag.StringVar(&po.style, "style", "Evermeet", "Select style: Evermeet, Mac, Fedora")
+	flag.BoolVar(&po.fullpath, "fullpath", true, "Show fullpath on prompt. Depends on the style")
+	flag.BoolVar(&po.noFullpath, "no-fullpath", false, "Show fullpath on prompt. The default value depends on the style")
+	flag.BoolVar(&po.color, "color", true, "Show color on prompt. The default value depends on the style")
+	flag.BoolVar(&po.noColor, "no-color", false, "Show color on prompt. The default value depends on the style")
 	flag.Parse()
+
+	/*colorSet := flag.CommandLine.LookupActual("color")
+	noColorSet := flag.CommandLine.LookupActual("color")
+	fullpathSet := flag.CommandLine.LookupActual("color")
+	noFullpathSet := flag.CommandLine.LookupActual("color")*/
+
 	switch style {
 	case "Evermeet":
 	case "Mac":
 	case "Fedora":
 	default:
-		fmt.Fprintln(os.Stderr, "Invalid style. Valid styles: Evermmet, Mac, Fedora")
+		fmt.Fprintln(os.Stderr, "Invalid style. Valid styles: Evermeet, Mac, Fedora")
 	}
 	logger = log.New(os.Stderr, "", log.LstdFlags)
 
