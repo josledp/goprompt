@@ -19,5 +19,6 @@ AWS_SESSION_EXPIRATION information about the current assumed role.
 == Known issues==
 * currently only Evermeet (Debian/Ubuntu) style supported, more to come
 * git information is not refreshed automatically (you need to run git fetch manually)
-* Missing tests
+* Missing some tests
+* on big repositories it is somewhat slow (probable we should cache something)
 
