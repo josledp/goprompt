@@ -7,6 +7,9 @@ AWS_SESSION_EXPIRATION information about the current assumed role.
 
 == Usage ==
 * You need a valid go installation and $GOPATH/bin on your path
+* You also need libgit2 >= 0.25. if its not exactly 0.26.X you have to change the git2go
+  library on prompt/helpers.go (git2go library has an script to compile
+  & install libgit2 on scripts folder if your version is <0.25)
 * go get github.com/josledp/goprompt
 * go install github.com/josledp/goprompt
 * link goprompt.sh to your home (or any other directory you may want)
