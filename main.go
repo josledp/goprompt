@@ -26,6 +26,8 @@ const (
 
 var logger *log.Logger
 
+type formatFunc func(string, ...termcolor.Mode) string
+
 type gitInfo struct {
 	conflict      bool
 	changed       int
@@ -240,37 +242,71 @@ func getTermInfo() termInfo {
 }
 
 type promptOptions struct {
-	style      string
-	fullpath   bool
-	noFullpath bool
-	color      bool
-	noColor    bool
+	style    string
+	fullpath bool
+	color    bool
 }
 
 func main() {
 	var debug bool
-	var po promptOptions
+	var fullpath, noFullpath bool
+	var color, noColor bool
 
+	po := promptOptions{}
+
+	//pushing flag package to its limits :)
 	flag.BoolVar(&debug, "debug", false, "enable debug messages")
 	flag.StringVar(&po.style, "style", "Evermeet", "Select style: Evermeet, Mac, Fedora")
-	flag.BoolVar(&po.fullpath, "fullpath", true, "Show fullpath on prompt. Depends on the style")
-	flag.BoolVar(&po.noFullpath, "no-fullpath", false, "Show fullpath on prompt. The default value depends on the style")
-	flag.BoolVar(&po.color, "color", true, "Show color on prompt. The default value depends on the style")
-	flag.BoolVar(&po.noColor, "no-color", false, "Show color on prompt. The default value depends on the style")
+	flag.BoolVar(&fullpath, "fullpath", true, "Show fullpath on prompt. Depends on the style")
+	flag.BoolVar(&noFullpath, "no-fullpath", false, "Show fullpath on prompt. The default value depends on the style")
+	flag.BoolVar(&color, "color", true, "Show color on prompt. The default value depends on the style")
+	flag.BoolVar(&noColor, "no-color", false, "Show color on prompt. The default value depends on the style")
 	flag.Parse()
 
-	/*colorSet := flag.CommandLine.LookupActual("color")
-	noColorSet := flag.CommandLine.LookupActual("color")
-	fullpathSet := flag.CommandLine.LookupActual("color")
-	noFullpathSet := flag.CommandLine.LookupActual("color")*/
+	flagsSet := make(map[string]struct{})
+	flag.Visit(func(f *flag.Flag) { flagsSet[f.Name] = struct{}{} })
+
+	_, colorSet := flagsSet["color"]
+	_, noColorSet := flagsSet["no-color"]
+	_, fullpathSet := flagsSet["fullpath"]
+	_, noFullpathSet := flagsSet["no-fullpath"]
+
+	if colorSet && noColorSet {
+		fmt.Fprintf(os.Stderr, "Please use --color or --no-color, not both")
+		os.Exit(1)
+	}
+
+	if fullpathSet && noFullpathSet {
+		fmt.Fprintf(os.Stderr, "Please use --fullpath or --no-fullpath, not both")
+		os.Exit(1)
+	}
 
 	switch po.style {
 	case "Evermeet":
+		po.color = true
+		po.fullpath = true
 	case "Mac":
+		po.color = false
+		po.fullpath = true
 	case "Fedora":
+		po.color = false
+		po.fullpath = false
 	default:
 		fmt.Fprintln(os.Stderr, "Invalid style. Valid styles: Evermmet, Mac, Fedora")
 	}
+
+	if colorSet {
+		po.color = color
+	} else if noColorSet {
+		po.color = !noColor
+	}
+
+	if fullpathSet {
+		po.fullpath = fullpath
+	} else if noFullpathSet {
+		po.fullpath = !noFullpath
+	}
+
 	logger = log.New(os.Stderr, "", log.LstdFlags)
 
 	if !debug {
@@ -286,85 +322,58 @@ func main() {
 
 	pi := promptInfo{term: ti, git: gi, aws: ai}
 
-	fmt.Println(makePrompt(po.style, pi))
+	fmt.Println(makePrompt(po, pi))
 
 }
 
-func makePrompt(style string, pi promptInfo) string {
-	switch style {
+func makePrompt(po promptOptions, pi promptInfo) string {
+	var format formatFunc
+	if po.color {
+		format = termcolor.EscapedFormat
+	} else {
+		format = func(s string, modes ...termcolor.Mode) string {
+			return s
+		}
+	}
+	switch po.style {
 	case "Evermeet":
-		return makePromptEvermeet(pi)
+		return makePromptEvermeet(format, po, pi)
 	case "Mac":
-		return makePromptMac(pi)
+		return makePromptMac(format, po, pi)
 	case "Fedora":
-		return makePromptFedora(pi)
+		return makePromptFedora(format, po, pi)
 	}
 	return "Not suppported"
 }
-func makePromptMac(pi promptInfo) string {
+func makePromptMac(format formatFunc, po promptOptions, pi promptInfo) string {
 	return "Not implemented"
 }
 
-func makePromptFedora(pi promptInfo) string {
-	return "Not implemented"
-}
-
-func makePromptEvermeet(pi promptInfo) string {
+func makePromptFedora(format formatFunc, po promptOptions, pi promptInfo) string {
 	//Formatting
-	var userInfo, lastCommandInfo, pwdInfo, virtualEnvInfo, awsInfo, gitInfo string
+	var userPromptInfo, lastCommandPromptInfo, pwdPromptInfo, virtualEnvPromptInfo, awsPromptInfo, gitPromptInfo string
 
 	promptEnd := "$"
 
 	if pi.term.user == "root" {
-		userInfo = termcolor.EscapedFormat(pi.term.hostname, termcolor.Bold, termcolor.FgRed)
+		userPromptInfo = format(pi.term.user+"@"+pi.term.hostname, termcolor.Bold, termcolor.FgRed)
 		promptEnd = "#"
 	} else {
-		userInfo = termcolor.EscapedFormat(pi.term.hostname, termcolor.Bold, termcolor.FgGreen)
+		userPromptInfo = format(pi.term.user+"@"+pi.term.hostname, termcolor.Bold, termcolor.FgGreen)
 	}
 	if pi.term.lastrc != "" {
-		lastCommandInfo = termcolor.EscapedFormat(pi.term.lastrc, termcolor.FgHiYellow) + " "
+		lastCommandPromptInfo = format(pi.term.lastrc, termcolor.FgHiYellow) + " "
 	}
-
-	pwdInfo = termcolor.EscapedFormat(pi.term.pwd, termcolor.Bold, termcolor.FgBlue)
+	if !po.fullpath {
+		pwd := strings.Split(pi.term.pwd, "/")
+		pi.term.pwd = pwd[len(pwd)-1]
+	}
+	pwdPromptInfo = format(pi.term.pwd, termcolor.Bold, termcolor.FgBlue)
 	if pi.term.virtualEnv != "" {
-		virtualEnvInfo = termcolor.EscapedFormat(fmt.Sprintf("(%s) ", pi.term.virtualEnv), termcolor.FgBlue)
+		virtualEnvPromptInfo = format(fmt.Sprintf("(%s) ", pi.term.virtualEnv), termcolor.FgBlue)
 	}
-	if pi.git.branch != "" {
-		gitInfo = " " + termcolor.EscapedFormat(pi.git.branch, termcolor.FgMagenta)
-		space := " "
-		if pi.git.commitsBehind > 0 {
-			gitInfo += space + s_DownArrow + "·" + strconv.Itoa(pi.git.commitsBehind)
-			space = ""
-		}
-		if pi.git.commitsAhead > 0 {
-			gitInfo += space + s_UpArrow + "·" + strconv.Itoa(pi.git.commitsAhead)
-			space = ""
-		}
-		if !pi.git.upstream {
-			gitInfo += space + "*"
-			space = ""
-		}
-		gitInfo += "|"
-		synced := true
-		if pi.git.staged > 0 {
-			gitInfo += termcolor.EscapedFormat(s_Dot+strconv.Itoa(pi.git.staged), termcolor.FgCyan)
-			synced = false
-		}
-		if pi.git.changed > 0 {
-			gitInfo += termcolor.EscapedFormat("+"+strconv.Itoa(pi.git.changed), termcolor.FgCyan)
-			synced = false
-		}
-		if pi.git.untracked > 0 {
-			gitInfo += termcolor.EscapedFormat(s_ThreeDots+strconv.Itoa(pi.git.untracked), termcolor.FgCyan)
-			synced = false
-		}
-		if pi.git.stashed > 0 {
-			gitInfo += termcolor.EscapedFormat(s_Flag+strconv.Itoa(pi.git.stashed), termcolor.FgHiMagenta)
-		}
-		if synced {
-			gitInfo += termcolor.EscapedFormat(s_Check, termcolor.FgHiGreen)
-		}
-	}
+	gitPromptInfo = makeGitPrompt(format, po, pi.git)
+
 	if pi.aws.role != "" {
 		t := termcolor.FgGreen
 		d := time.Until(pi.aws.expire).Seconds()
@@ -373,8 +382,87 @@ func makePromptEvermeet(pi promptInfo) string {
 		} else if d < 600 {
 			t = termcolor.FgYellow
 		}
-		awsInfo = termcolor.EscapedFormat(pi.aws.role, t) + "|"
+		awsPromptInfo = format(pi.aws.role, t) + "|"
 	}
 
-	return fmt.Sprintf("%s[%s%s %s%s%s]%s ", virtualEnvInfo, awsInfo, userInfo, lastCommandInfo, pwdInfo, gitInfo, promptEnd)
+	return fmt.Sprintf("[%s%s%s %s%s%s]%s ", virtualEnvPromptInfo, awsPromptInfo, userPromptInfo, lastCommandPromptInfo, pwdPromptInfo, gitPromptInfo, promptEnd)
+}
+
+func makeGitPrompt(format formatFunc, po promptOptions, gi gitInfo) string {
+	var gitPromptInfo string
+	if gi.branch != "" {
+		gitPromptInfo = " " + format(gi.branch, termcolor.FgMagenta)
+		space := " "
+		if gi.commitsBehind > 0 {
+			gitPromptInfo += space + s_DownArrow + "·" + strconv.Itoa(gi.commitsBehind)
+			space = ""
+		}
+		if gi.commitsAhead > 0 {
+			gitPromptInfo += space + s_UpArrow + "·" + strconv.Itoa(gi.commitsAhead)
+			space = ""
+		}
+		if !gi.upstream {
+			gitPromptInfo += space + "*"
+			space = ""
+		}
+		gitPromptInfo += "|"
+		synced := true
+		if gi.staged > 0 {
+			gitPromptInfo += format(s_Dot+strconv.Itoa(gi.staged), termcolor.FgCyan)
+			synced = false
+		}
+		if gi.changed > 0 {
+			gitPromptInfo += format("+"+strconv.Itoa(gi.changed), termcolor.FgCyan)
+			synced = false
+		}
+		if gi.untracked > 0 {
+			gitPromptInfo += format(s_ThreeDots+strconv.Itoa(gi.untracked), termcolor.FgCyan)
+			synced = false
+		}
+		if gi.stashed > 0 {
+			gitPromptInfo += format(s_Flag+strconv.Itoa(gi.stashed), termcolor.FgHiMagenta)
+		}
+		if synced {
+			gitPromptInfo += format(s_Check, termcolor.FgHiGreen)
+		}
+	}
+	return gitPromptInfo
+}
+func makePromptEvermeet(format formatFunc, po promptOptions, pi promptInfo) string {
+	//Formatting
+	var userPromptInfo, lastCommandPromptInfo, pwdPromptInfo, virtualEnvPromptInfo, awsPromptInfo, gitPromptInfo string
+
+	promptEnd := "$"
+
+	if pi.term.user == "root" {
+		userPromptInfo = format(pi.term.hostname, termcolor.Bold, termcolor.FgRed)
+		promptEnd = "#"
+	} else {
+		userPromptInfo = format(pi.term.user+"@"+pi.term.hostname, termcolor.Bold, termcolor.FgGreen)
+	}
+	if pi.term.lastrc != "" {
+		lastCommandPromptInfo = format(pi.term.lastrc, termcolor.FgHiYellow) + " "
+	}
+	if !po.fullpath {
+		pwd := strings.Split(pi.term.pwd, "/")
+		pi.term.pwd = pwd[len(pwd)-1]
+	}
+	pwdPromptInfo = format(pi.term.pwd, termcolor.Bold, termcolor.FgBlue)
+	if pi.term.virtualEnv != "" {
+		virtualEnvPromptInfo = format(fmt.Sprintf("(%s) ", pi.term.virtualEnv), termcolor.FgBlue)
+	}
+	gitPromptInfo = makeGitPrompt(format, po, pi.git)
+
+	if pi.aws.role != "" {
+		t := termcolor.FgGreen
+		d := time.Until(pi.aws.expire).Seconds()
+		if d < 0 {
+			t = termcolor.FgRed
+		} else if d < 600 {
+			t = termcolor.FgYellow
+		}
+		awsPromptInfo = format(pi.aws.role, t) + "|"
+	}
+
+	return fmt.Sprintf("%s%s%s %s%s%s%s ", virtualEnvPromptInfo, awsPromptInfo, userPromptInfo, lastCommandPromptInfo, pwdPromptInfo, gitPromptInfo, promptEnd)
 }

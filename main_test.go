@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/josledp/termcolor"
+
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -24,17 +26,21 @@ func TestAwsInfo(t *testing.T) {
 }
 
 func TestTermInfo(t *testing.T) {
+	hostname, err := os.Hostname()
+	if err != nil {
+		t.Fatal("error getting current hostname: ", err)
+	}
 	tt := []struct {
 		environ map[string]string
 		ti      termInfo
 	}{
 		{
-			map[string]string{"PWD": "/", "HOSTNAME": "hosttest", "HOME": "/home/test1", "USER": "test1", "LAST_COMMAND_RC": "0", "VIRTUAL_ENV": ""},
-			termInfo{pwd: "/", hostname: "hosttest", user: "test1", lastrc: "0", virtualEnv: ""},
+			map[string]string{"PWD": "/", "HOSTNAME": hostname, "HOME": "/home/test1", "USER": "test1", "LAST_COMMAND_RC": "0", "VIRTUAL_ENV": ""},
+			termInfo{pwd: "/", hostname: hostname, user: "test1", lastrc: "0", virtualEnv: ""},
 		},
 		{
-			map[string]string{"PWD": "/home/test1", "HOSTNAME": "hosttest", "HOME": "/home/test1", "USER": "test1", "LAST_COMMAND_RC": "127", "VIRTUAL_ENV": "/virtualenv/testvenv"},
-			termInfo{pwd: "~", hostname: "hosttest", user: "test1", lastrc: "127", virtualEnv: "testvenv"},
+			map[string]string{"PWD": "/home/test1", "HOSTNAME": hostname, "HOME": "/home/test1", "USER": "test1", "LAST_COMMAND_RC": "127", "VIRTUAL_ENV": "/virtualenv/testvenv"},
+			termInfo{pwd: "~", hostname: hostname, user: "test1", lastrc: "127", virtualEnv: "testvenv"},
 		},
 	}
 
@@ -52,14 +58,19 @@ func TestTermInfo(t *testing.T) {
 }
 
 func TestMakeEverteen(t *testing.T) {
+	hostname, err := os.Hostname()
+	if err != nil {
+		t.Fatal("error getting current hostname: ", err)
+	}
 	tt := []struct {
 		pi promptInfo
+		po promptOptions
 		sb string
 	}{
 		{
 			pi: promptInfo{
 				term: termInfo{
-					hostname:   "hosttest",
+					hostname:   hostname,
 					lastrc:     "0",
 					pwd:        "~/home",
 					user:       "testuser",
@@ -81,12 +92,13 @@ func TestMakeEverteen(t *testing.T) {
 					expire: time.Unix(int64(1506345326), int64(0)),
 				},
 			},
-			sb: "\\[\\033[0m\\]\\[\\033[34m\\](venv) \\[\\033[0m\\][\\[\\033[0m\\]\\[\\033[31m\\]role:test\\[\\033[0m\\]|\\[\\033[0m\\]\\[\\033[1;32m\\]hosttest\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[93m\\]0\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[1;34m\\]~/home\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[35m\\]branch\\[\\033[0m\\] ↓·2↑·4|\\[\\033[0m\\]\\[\\033[36m\\]●4\\[\\033[0m\\]\\[\\033[0m\\]\\[\\033[36m\\]+10\\[\\033[0m\\]\\[\\033[0m\\]\\[\\033[36m\\]…5\\[\\033[0m\\]\\[\\033[0m\\]\\[\\033[95m\\]⚑2\\[\\033[0m\\]]$ ",
+			po: promptOptions{style: "Evermeet", color: true, fullpath: true},
+			sb: "\\[\\033[0m\\]\\[\\033[34m\\](venv) \\[\\033[0m\\]\\[\\033[0m\\]\\[\\033[31m\\]role:test\\[\\033[0m\\]|\\[\\033[0m\\]\\[\\033[1;32m\\]testuser@" + hostname + "\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[93m\\]0\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[1;34m\\]~/home\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[35m\\]branch\\[\\033[0m\\] ↓·2↑·4|\\[\\033[0m\\]\\[\\033[36m\\]●4\\[\\033[0m\\]\\[\\033[0m\\]\\[\\033[36m\\]+10\\[\\033[0m\\]\\[\\033[0m\\]\\[\\033[36m\\]…5\\[\\033[0m\\]\\[\\033[0m\\]\\[\\033[95m\\]⚑2\\[\\033[0m\\]$ ",
 		},
 		{
 			pi: promptInfo{
 				term: termInfo{
-					hostname:   "hosttest",
+					hostname:   hostname,
 					lastrc:     "0",
 					pwd:        "~/home",
 					user:       "testuser",
@@ -108,13 +120,14 @@ func TestMakeEverteen(t *testing.T) {
 					expire: time.Unix(int64(1506345326), int64(0)),
 				},
 			},
-			sb: "\\[\\033[0m\\]\\[\\033[34m\\](venv) \\[\\033[0m\\][\\[\\033[0m\\]\\[\\033[31m\\]role:test\\[\\033[0m\\]|\\[\\033[0m\\]\\[\\033[1;32m\\]hosttest\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[93m\\]0\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[1;34m\\]~/home\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[35m\\]branch\\[\\033[0m\\]|\\[\\033[0m\\]\\[\\033[92m\\]✔\\[\\033[0m\\]]$ ",
+			po: promptOptions{style: "Evermeet", color: true, fullpath: true},
+			sb: "\\[\\033[0m\\]\\[\\033[34m\\](venv) \\[\\033[0m\\]\\[\\033[0m\\]\\[\\033[31m\\]role:test\\[\\033[0m\\]|\\[\\033[0m\\]\\[\\033[1;32m\\]testuser@" + hostname + "\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[93m\\]0\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[1;34m\\]~/home\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[35m\\]branch\\[\\033[0m\\]|\\[\\033[0m\\]\\[\\033[92m\\]✔\\[\\033[0m\\]$ ",
 		},
 	}
 	for _, test := range tt {
-		prompt := makePromptEvermeet(test.pi)
+		prompt := makePromptEvermeet(termcolor.EscapedFormat, test.po, test.pi)
 		if !cmp.Equal(prompt, test.sb) {
-			t.Errorf("error make Everteen prompt %v.\n It is: %s\n should be %s", test.pi, prompt, test.sb)
+			t.Errorf("error make Everteen prompt %v.\nIt is:     %s\nShould be: %s", test.pi, prompt, test.sb)
 		}
 	}
 
