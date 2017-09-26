@@ -24,3 +24,9 @@ AWS_SESSION_EXPIRATION information about the current assumed role.
 * Missing a lot of tests
 * on big repositories it is somewhat slow (probable we should cache something)
 * Not happy yet with the code. Need to refactor some things
+
+== Todo ==
+* Add a Mac prompt style
+* Add options for git style, and implement them (oh-my-zsh git style for example)
+* Add more options to enable further customization
+* Implement ruby? (RVM/rbenv/bundle ¿? too many options...)
