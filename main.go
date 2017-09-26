@@ -10,8 +10,6 @@ import (
 	"github.com/josledp/termcolor"
 )
 
-
-
 var logger *log.Logger
 
 type formatFunc func(string, ...termcolor.Mode) string
@@ -24,7 +22,7 @@ func main() {
 
 	//pushing flag package to its limits :)
 	flag.StringVar(&style, "style", "Evermeet", "Select style: Evermeet, Mac, Fedora")
-	flag.BoolVar(&fullpath, "fullpath", true, "Show fullpath on prompt. Depends on the style")
+	flag.BoolVar(&fullpath, "fullpath", true, "Show fullpath on prompt. The default value depends on the style")
 	flag.BoolVar(&noFullpath, "no-fullpath", false, "Show fullpath on prompt. The default value depends on the style")
 	flag.BoolVar(&color, "color", true, "Show color on prompt. The default value depends on the style")
 	flag.BoolVar(&noColor, "no-color", false, "Show color on prompt. The default value depends on the style")

@@ -11,12 +11,12 @@ import (
 )
 
 const (
-	s_DownArrow = "↓"
-	s_UpArrow   = "↑"
-	s_ThreeDots = "…"
-	s_Dot       = "●"
-	s_Check     = "✔"
-	s_Flag      = "⚑"
+	sDownArrow = "↓"
+	sUpArrow   = "↑"
+	sThreeDots = "…"
+	sDot       = "●"
+	sCheck     = "✔"
+	sFlag      = "⚑"
 )
 
 type gitInfo struct {
@@ -56,8 +56,17 @@ type Prompt struct {
 
 //New returns a new Prompt object
 func New(style string, pColor *bool, pFullpath *bool) Prompt {
+	return newWithInfo(style, pColor, pFullpath, getTermInfo(), getAwsInfo(), getGitInfo())
+}
+
+func newWithInfo(style string, pColor *bool, pFullpath *bool, ti termInfo, ai awsInfo, gi gitInfo) Prompt {
+
 	pr := Prompt{}
 	pr.style = style
+	pr.term = ti
+	pr.aws = ai
+	pr.git = gi
+
 	var color bool
 
 	switch style {
@@ -86,18 +95,6 @@ func New(style string, pColor *bool, pFullpath *bool) Prompt {
 
 		pr.format = func(s string, modes ...termcolor.Mode) string { return s }
 	}
-
-	ti := getTermInfo()
-
-	//AWS
-	ai := getAwsInfo()
-
-	//Get git information
-	gi := getGitInfo()
-
-	pr.term = ti
-	pr.git = gi
-	pr.aws = ai
 	return pr
 }
 
@@ -203,11 +200,11 @@ func (pr Prompt) makeGitPrompt() string {
 		gitPromptInfo = " " + pr.format(pr.git.branch, termcolor.FgMagenta)
 		space := " "
 		if pr.git.commitsBehind > 0 {
-			gitPromptInfo += space + s_DownArrow + "·" + strconv.Itoa(pr.git.commitsBehind)
+			gitPromptInfo += space + sDownArrow + "·" + strconv.Itoa(pr.git.commitsBehind)
 			space = ""
 		}
 		if pr.git.commitsAhead > 0 {
-			gitPromptInfo += space + s_UpArrow + "·" + strconv.Itoa(pr.git.commitsAhead)
+			gitPromptInfo += space + sUpArrow + "·" + strconv.Itoa(pr.git.commitsAhead)
 			space = ""
 		}
 		if !pr.git.upstream {
@@ -217,7 +214,7 @@ func (pr Prompt) makeGitPrompt() string {
 		gitPromptInfo += "|"
 		synced := true
 		if pr.git.staged > 0 {
-			gitPromptInfo += pr.format(s_Dot+strconv.Itoa(pr.git.staged), termcolor.FgCyan)
+			gitPromptInfo += pr.format(sDot+strconv.Itoa(pr.git.staged), termcolor.FgCyan)
 			synced = false
 		}
 		if pr.git.changed > 0 {
@@ -225,14 +222,14 @@ func (pr Prompt) makeGitPrompt() string {
 			synced = false
 		}
 		if pr.git.untracked > 0 {
-			gitPromptInfo += pr.format(s_ThreeDots+strconv.Itoa(pr.git.untracked), termcolor.FgCyan)
+			gitPromptInfo += pr.format(sThreeDots+strconv.Itoa(pr.git.untracked), termcolor.FgCyan)
 			synced = false
 		}
 		if pr.git.stashed > 0 {
-			gitPromptInfo += pr.format(s_Flag+strconv.Itoa(pr.git.stashed), termcolor.FgHiMagenta)
+			gitPromptInfo += pr.format(sFlag+strconv.Itoa(pr.git.stashed), termcolor.FgHiMagenta)
 		}
 		if synced {
-			gitPromptInfo += pr.format(s_Check, termcolor.FgHiGreen)
+			gitPromptInfo += pr.format(sCheck, termcolor.FgHiGreen)
 		}
 	}
 	return gitPromptInfo

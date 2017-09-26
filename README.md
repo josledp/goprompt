@@ -1,6 +1,6 @@
 A prompt generator wrote in golang. It is heavily inspired on bash-git-prompt
-(https://github.com/magicmonty/bash-git-prompt) but adding information about
-Python environment and AWS*
+(https://github.com/magicmonty/bash-git-prompt), but it works outside a git
+repository and adds information about Python environment and AWS*
 
 *Aws information is based on a custom tool that exports on AWS_ROLE and
 AWS_SESSION_EXPIRATION information about the current assumed role.
