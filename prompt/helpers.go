@@ -147,12 +147,11 @@ func getGitInfo() gitInfo {
 				}
 			}
 		}
-		// stash
 		// only works if libgit >= 0.25
-		/*repository.Stashes.Foreach(func(i int, m string, o *git2go.Oid) error {
+		repository.Stashes.Foreach(func(i int, m string, o *git2go.Oid) error {
 			gi.stashed = i + 1
 			return nil
-		})*/
+		})
 	}
 	return gi
 }
