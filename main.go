@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	git2go "gopkg.in/libgit2/git2go.v26"
+	git2go "gopkg.in/libgit2/git2go.v24"
 
 	"github.com/josledp/termcolor"
 )
@@ -209,11 +209,12 @@ func getGitInfo() gitInfo {
 			}
 		}
 		// stash
-		repository.Stashes.Foreach(func(i int, m string, o *git2go.Oid) error {
+		// only works if libgit >= 0.25
+		/*repository.Stashes.Foreach(func(i int, m string, o *git2go.Oid) error {
 			gi.stashed = i + 1
 			return nil
 		})
-		logger.Println("Stashes: ", gi.stashed)
+		logger.Println("Stashes: ", gi.stashed)*/
 	}
 	return gi
 }
