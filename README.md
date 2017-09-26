@@ -23,4 +23,4 @@ AWS_SESSION_EXPIRATION information about the current assumed role.
 * git information is not refreshed automatically (you need to run git fetch manually)
 * Missing a lot of tests
 * on big repositories it is somewhat slow (probable we should cache something)
-* Everything on main right now, and it has grow a lot. refactor needed!
+* Not happy yet with the code. Need to refactor some things
