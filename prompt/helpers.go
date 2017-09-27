@@ -167,7 +167,7 @@ func getGitInfo() gitInfo {
 
 		if err == nil {
 			gi.hasUpstream = true
-			/*remoteBranchName, err := remoteRef.Branch().Name()
+			remoteBranchName, err := remoteRef.Branch().Name()
 			if err != nil {
 				log.Println("Error getting branch name", err)
 			} else {
@@ -179,12 +179,18 @@ func getGitInfo() gitInfo {
 				} else {
 					//It does not work with authentication
 					//It does not work using host alias on .ssh/config
-					err := remote.Fetch([]string{}, nil, "")
-					if err != nil {
-						log.Println("error fetching remote: ", err)
+					cb := git2go.RemoteCallbacks{}
+					cb.CertificateCheckCallback = func(*git2go.Certificate, bool, string) git2go.ErrorCode { return git2go.ErrOk }
+					cb.CredentialsCallback = func(url string, username_from_url string, allowed_types git2go.CredType) (git2go.ErrorCode, *git2go.Cred) {
+						return git2go.ErrOk, nil
 					}
+					err = remote.Fetch([]string{}, &git2go.FetchOptions{RemoteCallbacks: cb}, "")
+					if err != nil {
+						log.Println("error connecting fetching remote: ", err)
+					}
+
 				}
-			}*/
+			}
 
 			defer remoteRef.Free()
 

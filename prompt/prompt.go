@@ -17,6 +17,8 @@ const (
 	sDot       = "●"
 	sCheck     = "✔"
 	sFlag      = "⚑"
+	sAsterisk  = "⭑"
+	sCross     = "✖"
 )
 
 //The Prompt object
@@ -183,11 +185,15 @@ func (pr Prompt) makeGitPrompt() string {
 			space = ""
 		}
 		if !pr.git.hasUpstream {
-			gitPromptInfo += space + "*"
+			gitPromptInfo += space + sAsterisk
 			space = ""
 		}
 		gitPromptInfo += "|"
 		synced := true
+		if pr.git.conflicted > 0 {
+			gitPromptInfo += pr.format(sCross+strconv.Itoa(pr.git.conflicted), termcolor.FgRed)
+			synced = false
+		}
 		if pr.git.staged > 0 {
 			gitPromptInfo += pr.format(sDot+strconv.Itoa(pr.git.staged), termcolor.FgCyan)
 			synced = false
