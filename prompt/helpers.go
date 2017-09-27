@@ -169,7 +169,7 @@ func getGitInfo(noFetch bool) gitInfo {
 			defer remoteRef.Free()
 
 			gi.hasUpstream = true
-			remoteBranchName, err := remoteRef.Branch().Name()
+			/*remoteBranchName, err := remoteRef.Branch().Name()
 			if err != nil {
 				log.Println("Error getting branch name", err)
 			} else {
@@ -180,21 +180,35 @@ func getGitInfo(noFetch bool) gitInfo {
 					if err != nil {
 						log.Println("Error looking for remote Upstream: ", err)
 					} else {
-						//It does not work with authentication
-						//It does not work using host alias on .ssh/config
-						cb := git2go.RemoteCallbacks{}
-						cb.CertificateCheckCallback = func(*git2go.Certificate, bool, string) git2go.ErrorCode { return git2go.ErrOk }
-						cb.CredentialsCallback = func(url string, username_from_url string, allowed_types git2go.CredType) (git2go.ErrorCode, *git2go.Cred) {
-							return git2go.ErrOk, nil
+						err = remote.Connect(git2go.ConnectDirectionFetch, &git2go.RemoteCallbacks{}, nil, []string{})
+						defer remote.Disconnect()
+						if err != nil {
+							log.Println("error connecting: ", err)
 						}
-						err = remote.Fetch([]string{}, &git2go.FetchOptions{RemoteCallbacks: cb}, "")
+						err = remote.Fetch([]string{}, nil, "")
 						if err != nil {
 							log.Println("error connecting fetching remote: ", err)
 						}
+						//It does not work with authentication
+						//It does not work using host alias on .ssh/config
+						/*	cb := git2go.RemoteCallbacks{}
+							cb.CertificateCheckCallback = func(*git2go.Certificate, bool, string) git2go.ErrorCode { return git2go.ErrOk }
+							cb.CredentialsCallback = func(url string, username_from_url string, allowed_types git2go.CredType) (git2go.ErrorCode, *git2go.Cred) {
+								err, cred := git2go.NewCredSshKeyFromAgent("jose@github.com")
+								if err != 0 {
+									log.Println("error: ", err)
+								}
+
+								return git2go.ErrOk, &cred
+							}
+							err = remote.Fetch([]string{}, &git2go.FetchOptions{RemoteCallbacks: cb}, "")
+							if err != nil {
+								log.Println("error connecting fetching remote: ", err)
+							}
 
 					}
 				}
-			}
+			}*/
 
 			if !remoteRef.Target().Equal(localRef.Target()) {
 				if err != nil {
