@@ -76,6 +76,62 @@ func TestMakeEverteen(t *testing.T) {
 			},
 			sb: "\\[\\033[0m\\]\\[\\033[34m\\](venv) \\[\\033[0m\\]\\[\\033[0m\\]\\[\\033[31m\\]role:test\\[\\033[0m\\]|\\[\\033[0m\\]\\[\\033[1;32m\\]testuser@" + hostname + "\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[93m\\]0\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[1;34m\\]~/home\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[35m\\]branch\\[\\033[0m\\]|\\[\\033[0m\\]\\[\\033[92m\\]✔\\[\\033[0m\\]$ ",
 		},
+		{
+			fullpath: nil,
+			color:    nil,
+			style:    "Evermeet",
+			term: termInfo{
+				hostname:   hostname,
+				lastrc:     "0",
+				pwd:        "~/home",
+				user:       "testuser",
+				virtualEnv: "venv",
+			},
+			git: gitInfo{
+				branch:        "branch",
+				changed:       0,
+				untracked:     0,
+				stashed:       0,
+				staged:        0,
+				upstream:      true,
+				commitsAhead:  0,
+				commitsBehind: 0,
+			},
+
+			aws: awsInfo{
+				role:   "role:test",
+				expire: time.Unix(int64(1506345326), int64(0)),
+			},
+			sb: "\\[\\033[0m\\]\\[\\033[34m\\](venv) \\[\\033[0m\\]\\[\\033[0m\\]\\[\\033[31m\\]role:test\\[\\033[0m\\]|\\[\\033[0m\\]\\[\\033[1;32m\\]testuser@josesp\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[93m\\]0\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[1;34m\\]~/home\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[35m\\]branch\\[\\033[0m\\]|\\[\\033[0m\\]\\[\\033[92m\\]✔\\[\\033[0m\\]$ ",
+		},
+		{
+			fullpath: nil,
+			color:    nil,
+			style:    "Evermeet",
+			term: termInfo{
+				hostname:   hostname,
+				lastrc:     "0",
+				pwd:        "~/home",
+				user:       "testuser",
+				virtualEnv: "venv",
+			},
+			git: gitInfo{
+				branch:        "branch",
+				changed:       0,
+				untracked:     0,
+				stashed:       1,
+				staged:        0,
+				upstream:      true,
+				commitsAhead:  0,
+				commitsBehind: 0,
+			},
+
+			aws: awsInfo{
+				role:   "role:test",
+				expire: time.Unix(int64(1506345326), int64(0)),
+			},
+			sb: "\\[\\033[0m\\]\\[\\033[34m\\](venv) \\[\\033[0m\\]\\[\\033[0m\\]\\[\\033[31m\\]role:test\\[\\033[0m\\]|\\[\\033[0m\\]\\[\\033[1;32m\\]testuser@josesp\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[93m\\]0\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[1;34m\\]~/home\\[\\033[0m\\] \\[\\033[0m\\]\\[\\033[35m\\]branch\\[\\033[0m\\]|\\[\\033[0m\\]\\[\\033[92m\\]✔\\[\\033[0m\\]\\[\\033[0m\\]\\[\\033[95m\\]⚑1\\[\\033[0m\\]$ ",
+		},
 	}
 	for _, test := range tt {
 		pr := newWithInfo(test.style, test.color, test.fullpath, test.term, test.aws, test.git)

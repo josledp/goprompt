@@ -225,11 +225,11 @@ func (pr Prompt) makeGitPrompt() string {
 			gitPromptInfo += pr.format(sThreeDots+strconv.Itoa(pr.git.untracked), termcolor.FgCyan)
 			synced = false
 		}
-		if pr.git.stashed > 0 {
-			gitPromptInfo += pr.format(sFlag+strconv.Itoa(pr.git.stashed), termcolor.FgHiMagenta)
-		}
 		if synced {
 			gitPromptInfo += pr.format(sCheck, termcolor.FgHiGreen)
+		}
+		if pr.git.stashed > 0 {
+			gitPromptInfo += pr.format(sFlag+strconv.Itoa(pr.git.stashed), termcolor.FgHiMagenta)
 		}
 	}
 	return gitPromptInfo
