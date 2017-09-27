@@ -10,6 +10,32 @@ import (
 	git2go "gopkg.in/libgit2/git2go.v26"
 )
 
+type gitInfo struct {
+	conflicted    int
+	detached      bool
+	changed       int
+	staged        int
+	untracked     int
+	commitsAhead  int
+	commitsBehind int
+	stashed       int
+	branch        string
+	hasUpstream   bool
+}
+
+type awsInfo struct {
+	role   string
+	expire time.Time
+}
+
+type termInfo struct {
+	lastrc     string
+	pwd        string
+	user       string
+	hostname   string
+	virtualEnv string
+}
+
 func getPythonVirtualEnv() string {
 	virtualEnv, ve := os.LookupEnv("VIRTUAL_ENV")
 	if ve {
@@ -106,7 +132,7 @@ func getGitInfo() gitInfo {
 				got = true
 			}
 			if entry.Status&git2go.StatusConflicted > 0 {
-				gi.conflict = true
+				gi.conflicted++
 				got = true
 			}
 			if !got {
@@ -123,8 +149,6 @@ func getGitInfo() gitInfo {
 		}
 		defer localRef.Free()
 
-		ref := strings.Split(localRef.Name(), "/")
-		gi.branch = ref[len(ref)-1]
 		//Get commits Ahead/Behind
 
 		localBranch := localRef.Branch()
@@ -132,9 +156,36 @@ func getGitInfo() gitInfo {
 			log.Fatalln("Error getting local branch: ", err)
 		}
 
+		if isHead, _ := localBranch.IsHead(); isHead {
+			gi.branch = localRef.Shorthand()
+		} else {
+			gi.branch = localRef.Target().String()[:7]
+			gi.detached = true
+		}
+
 		remoteRef, err := localBranch.Upstream()
+
 		if err == nil {
-			gi.upstream = true
+			gi.hasUpstream = true
+			/*remoteBranchName, err := remoteRef.Branch().Name()
+			if err != nil {
+				log.Println("Error getting branch name", err)
+			} else {
+				upstream := strings.Split(remoteBranchName, "/")[0]
+				remote, err := repository.Remotes.Lookup(upstream)
+				defer remote.Free()
+				if err != nil {
+					log.Println("Error looking for remote Upstream: ", err)
+				} else {
+					//It does not work with authentication
+					//It does not work using host alias on .ssh/config
+					err := remote.Fetch([]string{}, nil, "")
+					if err != nil {
+						log.Println("error fetching remote: ", err)
+					}
+				}
+			}*/
+
 			defer remoteRef.Free()
 
 			if !remoteRef.Target().Equal(localRef.Target()) {

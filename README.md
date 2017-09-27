@@ -7,9 +7,7 @@ AWS_SESSION_EXPIRATION information about the current assumed role.
 
 == Usage ==
 * You need a valid go installation and $GOPATH/bin on your path
-* You also need libgit2 >= 0.25. if its not exactly 0.26.X you have to change the git2go
-  library on prompt/helpers.go (git2go library has an script to compile
-  & install libgit2 on scripts folder if your version is <0.25)
+* You need libgit2 >= 0.25. if its not 0.26 you have to change the git2go library on prompt/helpers.go 
 * go get github.com/josledp/goprompt
 * go install github.com/josledp/goprompt
 * link goprompt.sh to your home (or any other directory you may want)
@@ -32,4 +30,4 @@ AWS_SESSION_EXPIRATION information about the current assumed role.
 * Add a Mac prompt style
 * Add options for git style, and implement them (oh-my-zsh git style for example)
 * Add more options to enable further customization
-* Implement ruby? (RVM/rbenv/bundle ¿? too many options...)
+* Implement ruby? (RVM/rbenv/bundle ¿?)

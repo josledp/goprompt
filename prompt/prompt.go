@@ -19,31 +19,6 @@ const (
 	sFlag      = "⚑"
 )
 
-type gitInfo struct {
-	conflict      bool
-	changed       int
-	staged        int
-	untracked     int
-	commitsAhead  int
-	commitsBehind int
-	stashed       int
-	branch        string
-	upstream      bool
-}
-
-type awsInfo struct {
-	role   string
-	expire time.Time
-}
-
-type termInfo struct {
-	lastrc     string
-	pwd        string
-	user       string
-	hostname   string
-	virtualEnv string
-}
-
 //The Prompt object
 type Prompt struct {
 	format   func(string, ...termcolor.Mode) string
@@ -207,7 +182,7 @@ func (pr Prompt) makeGitPrompt() string {
 			gitPromptInfo += space + sUpArrow + "·" + strconv.Itoa(pr.git.commitsAhead)
 			space = ""
 		}
-		if !pr.git.upstream {
+		if !pr.git.hasUpstream {
 			gitPromptInfo += space + "*"
 			space = ""
 		}
