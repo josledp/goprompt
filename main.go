@@ -18,6 +18,7 @@ func main() {
 	var fullpath, noFullpath bool
 	var color, noColor bool
 	var pFullpath, pColor *bool
+	var noFetch bool
 	var style string
 
 	//pushing flag package to its limits :)
@@ -26,6 +27,7 @@ func main() {
 	flag.BoolVar(&noFullpath, "no-fullpath", false, "Show fullpath on prompt. The default value depends on the style")
 	flag.BoolVar(&color, "color", true, "Show color on prompt. The default value depends on the style")
 	flag.BoolVar(&noColor, "no-color", false, "Show color on prompt. The default value depends on the style")
+	flag.BoolVar(&noFetch, "no-fetch", false, "If set avoid git helper trying to update git repository information")
 	flag.Parse()
 
 	flagsSet := make(map[string]struct{})
@@ -60,7 +62,7 @@ func main() {
 		*pFullpath = !noFullpath
 	}
 
-	pr := prompt.New(style, pColor, pFullpath)
+	pr := prompt.New(style, pColor, pFullpath, noFetch)
 	fmt.Println(pr.GetPrompt())
 
 }

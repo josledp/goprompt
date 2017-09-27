@@ -32,8 +32,8 @@ type Prompt struct {
 }
 
 //New returns a new Prompt object
-func New(style string, pColor *bool, pFullpath *bool) Prompt {
-	return newWithInfo(style, pColor, pFullpath, getTermInfo(), getAwsInfo(), getGitInfo())
+func New(style string, pColor *bool, pFullpath *bool, noFetch bool) Prompt {
+	return newWithInfo(style, pColor, pFullpath, getTermInfo(), getAwsInfo(), getGitInfo(noFetch))
 }
 
 func newWithInfo(style string, pColor *bool, pFullpath *bool, ti termInfo, ai awsInfo, gi gitInfo) Prompt {

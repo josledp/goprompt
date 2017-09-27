@@ -61,7 +61,7 @@ func getAwsInfo() awsInfo {
 	return ai
 }
 
-func getGitInfo() gitInfo {
+func getGitInfo(noFetch bool) gitInfo {
 	gi := gitInfo{}
 
 	gitpath, err := git2go.Discover(".", false, []string{"/"})
@@ -166,33 +166,35 @@ func getGitInfo() gitInfo {
 		remoteRef, err := localBranch.Upstream()
 
 		if err == nil {
+			defer remoteRef.Free()
+
 			gi.hasUpstream = true
 			remoteBranchName, err := remoteRef.Branch().Name()
 			if err != nil {
 				log.Println("Error getting branch name", err)
 			} else {
-				upstream := strings.Split(remoteBranchName, "/")[0]
-				remote, err := repository.Remotes.Lookup(upstream)
-				defer remote.Free()
-				if err != nil {
-					log.Println("Error looking for remote Upstream: ", err)
-				} else {
-					//It does not work with authentication
-					//It does not work using host alias on .ssh/config
-					cb := git2go.RemoteCallbacks{}
-					cb.CertificateCheckCallback = func(*git2go.Certificate, bool, string) git2go.ErrorCode { return git2go.ErrOk }
-					cb.CredentialsCallback = func(url string, username_from_url string, allowed_types git2go.CredType) (git2go.ErrorCode, *git2go.Cred) {
-						return git2go.ErrOk, nil
-					}
-					err = remote.Fetch([]string{}, &git2go.FetchOptions{RemoteCallbacks: cb}, "")
+				if !noFetch {
+					upstream := strings.Split(remoteBranchName, "/")[0]
+					remote, err := repository.Remotes.Lookup(upstream)
+					defer remote.Free()
 					if err != nil {
-						log.Println("error connecting fetching remote: ", err)
-					}
+						log.Println("Error looking for remote Upstream: ", err)
+					} else {
+						//It does not work with authentication
+						//It does not work using host alias on .ssh/config
+						cb := git2go.RemoteCallbacks{}
+						cb.CertificateCheckCallback = func(*git2go.Certificate, bool, string) git2go.ErrorCode { return git2go.ErrOk }
+						cb.CredentialsCallback = func(url string, username_from_url string, allowed_types git2go.CredType) (git2go.ErrorCode, *git2go.Cred) {
+							return git2go.ErrOk, nil
+						}
+						err = remote.Fetch([]string{}, &git2go.FetchOptions{RemoteCallbacks: cb}, "")
+						if err != nil {
+							log.Println("error connecting fetching remote: ", err)
+						}
 
+					}
 				}
 			}
-
-			defer remoteRef.Free()
 
 			if !remoteRef.Target().Equal(localRef.Target()) {
 				if err != nil {
