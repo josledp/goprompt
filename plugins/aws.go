@@ -47,7 +47,7 @@ func (a Aws) Get(format func(string, ...termcolor.Mode) string) (string, []termc
 		} else if d < 600 {
 			t = termcolor.FgYellow
 		}
-		return format(a.role, t), []termcolor.Mode{t}
+		return format(a.role, t), nil
 	}
 	return "", nil
 }
