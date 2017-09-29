@@ -18,7 +18,7 @@ type Plugin interface {
 }
 
 //Compile processes the template and returns a prompt string
-func Compile(predefinedTemplate, template string, color bool) string {
+func Compile(template string, color bool, options map[string]interface{}) string {
 	var format func(string, ...termcolor.Mode) string
 	prompt := template
 
@@ -58,7 +58,7 @@ func Compile(predefinedTemplate, template string, color bool) string {
 			plugin := rawPlugin[1 : len(rawPlugin)-1]
 			if p, ok := mPlugins[plugin]; ok {
 				//TODO +options
-				err := p.Load(defaultOptions[predefinedTemplate])
+				err := p.Load(options)
 				if err != nil {
 					log.Printf("Unable to load plugin %s", plugin)
 					return
@@ -90,9 +90,6 @@ func Compile(predefinedTemplate, template string, color bool) string {
 	return prompt
 }
 
-//Templates is a map with predefined templates
-var Templates map[string]string
-var defaultOptions map[string]map[string]interface{}
 var availablePlugins []Plugin
 
 func init() {
@@ -108,16 +105,4 @@ func init() {
 		&plugins.Golang{},
 	}
 
-	Templates = map[string]string{
-		"Evermeet": "<(%python%) ><%aws%|><%user%@><%hostname%> <%lastcommand% ><%path%>< %git%><%userchar%> ",
-		"Fedora":   "[ <(%python%) ><%aws%|><%user%@><%hostname%> <%lastcommand% ><%path%>< %git%> ]<%userchar%> ",
-	}
-	defaultOptions = map[string]map[string]interface{}{
-		"Evermeet": map[string]interface{}{
-			"path.fullpath": true,
-		},
-		"Fedora": map[string]interface{}{
-			"path.fullpath": false,
-		},
-	}
 }

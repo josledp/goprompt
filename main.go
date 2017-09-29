@@ -38,18 +38,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	var options map[string]interface{}
 	if customTemplateSet {
 		t = customTemplate
-		template = ""
 	} else {
 		var ok bool
-		t, ok = prompt.Templates[template]
+		t, ok = templates[template]
 		if !ok {
 			fmt.Fprintf(os.Stderr, "Template %s not found", template)
 		}
+		options = defaultOptions[template]
+
 	}
 
-	pr := prompt.Compile(template, t, !noColor)
+	pr := prompt.Compile(t, !noColor, options)
 	fmt.Println(pr)
 
 }
