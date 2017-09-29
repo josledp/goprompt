@@ -28,9 +28,9 @@ func (uc *UserChar) Load(options map[string]interface{}) error {
 }
 
 //Get returns the string to use in the prompt
-func (uc *UserChar) Get(format func(string, ...termcolor.Mode) string) string {
+func (uc *UserChar) Get(format func(string, ...termcolor.Mode) string) (string, []termcolor.Mode) {
 	if uc.user == "root" {
-		return "#"
+		return "#", nil
 	}
-	return "$"
+	return "$", nil
 }

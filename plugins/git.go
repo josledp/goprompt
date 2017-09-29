@@ -167,7 +167,7 @@ func (g *Git) Load(options map[string]interface{}) error {
 }
 
 //Get returns the string to use in the prompt
-func (g Git) Get(format func(string, ...termcolor.Mode) string) string {
+func (g Git) Get(format func(string, ...termcolor.Mode) string) (string, []termcolor.Mode) {
 	var gitPromptInfo string
 	if g.branch != "" {
 		gitPromptInfo = format(g.branch, termcolor.FgMagenta)
@@ -209,5 +209,5 @@ func (g Git) Get(format func(string, ...termcolor.Mode) string) string {
 			gitPromptInfo += format(sFlag+strconv.Itoa(g.stashed), termcolor.FgHiMagenta)
 		}
 	}
-	return gitPromptInfo
+	return gitPromptInfo, []termcolor.Mode{termcolor.FgMagenta}
 }

@@ -32,9 +32,9 @@ func (h *Hostname) Load(options map[string]interface{}) error {
 }
 
 //Get returns the string to use in the prompt
-func (h Hostname) Get(format func(string, ...termcolor.Mode) string) string {
+func (h Hostname) Get(format func(string, ...termcolor.Mode) string) (string, []termcolor.Mode) {
 	if h.user == "root" {
-		return format(h.hostname, termcolor.Bold, termcolor.FgRed)
+		return format(h.hostname, termcolor.Bold, termcolor.FgRed), []termcolor.Mode{termcolor.FgRed}
 	}
-	return format(h.hostname, termcolor.Bold, termcolor.FgGreen)
+	return format(h.hostname, termcolor.Bold, termcolor.FgGreen), []termcolor.Mode{termcolor.FgGreen}
 }

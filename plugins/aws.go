@@ -36,8 +36,7 @@ func (a *Aws) Load(options map[string]interface{}) error {
 }
 
 //Get returns the string to use in the prompt
-func (a Aws) Get(format func(string, ...termcolor.Mode) string) string {
-	var awsPromptInfo string
+func (a Aws) Get(format func(string, ...termcolor.Mode) string) (string, []termcolor.Mode) {
 	if a.role != "" {
 		t := termcolor.FgGreen
 		d := time.Until(a.expire).Seconds()
@@ -48,7 +47,7 @@ func (a Aws) Get(format func(string, ...termcolor.Mode) string) string {
 		} else if d < 600 {
 			t = termcolor.FgYellow
 		}
-		awsPromptInfo = format(a.role, t)
+		return format(a.role, t), []termcolor.Mode{t}
 	}
-	return awsPromptInfo
+	return "", nil
 }

@@ -30,10 +30,9 @@ func (lc *LastCommand) Load(options map[string]interface{}) error {
 }
 
 //Get returns the string to use in the prompt
-func (lc LastCommand) Get(format func(string, ...termcolor.Mode) string) string {
-	var lastCommandPromptInfo string
+func (lc LastCommand) Get(format func(string, ...termcolor.Mode) string) (string, []termcolor.Mode) {
 	if lc.lastrc != "" {
-		lastCommandPromptInfo = format(lc.lastrc, termcolor.FgHiYellow)
+		return format(lc.lastrc, termcolor.FgHiYellow), []termcolor.Mode{termcolor.FgHiYellow}
 	}
-	return lastCommandPromptInfo
+	return "", nil
 }

@@ -43,8 +43,6 @@ func (p *Path) Load(options map[string]interface{}) error {
 }
 
 //Get returns the string to use in the prompt
-func (p Path) Get(format func(string, ...termcolor.Mode) string) string {
-	var pwdPromptInfo string
-	pwdPromptInfo = format(p.pwd, termcolor.Bold, termcolor.FgBlue)
-	return pwdPromptInfo
+func (p Path) Get(format func(string, ...termcolor.Mode) string) (string, []termcolor.Mode) {
+	return format(p.pwd, termcolor.Bold, termcolor.FgBlue), []termcolor.Mode{termcolor.FgBlue}
 }

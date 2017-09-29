@@ -23,6 +23,6 @@ func (g *Golang) Load(options map[string]interface{}) error {
 }
 
 //Get returns the string to use in the prompt
-func (g Golang) Get(format func(string, ...termcolor.Mode) string) string {
-	return format(g.version, termcolor.FgBlue)
+func (g Golang) Get(format func(string, ...termcolor.Mode) string) (string, []termcolor.Mode) {
+	return format(g.version, termcolor.FgBlue), []termcolor.Mode{termcolor.FgBlue}
 }

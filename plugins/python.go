@@ -29,10 +29,9 @@ func (p *Python) Load(options map[string]interface{}) error {
 }
 
 //Get returns the string to use in the prompt
-func (p Python) Get(format func(string, ...termcolor.Mode) string) string {
-	var virtualEnvPromptInfo string
+func (p Python) Get(format func(string, ...termcolor.Mode) string) (string, []termcolor.Mode) {
 	if p.virtualEnv != "" {
-		virtualEnvPromptInfo = format(fmt.Sprintf("%s", p.virtualEnv), termcolor.FgBlue)
+		return format(fmt.Sprintf("%s", p.virtualEnv), termcolor.FgBlue), []termcolor.Mode{termcolor.FgBlue}
 	}
-	return virtualEnvPromptInfo
+	return "", nil
 }

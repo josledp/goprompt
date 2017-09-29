@@ -14,7 +14,7 @@ import (
 type Plugin interface {
 	Name() string
 	Load(options map[string]interface{}) error
-	Get(format func(string, ...termcolor.Mode) string) string
+	Get(format func(string, ...termcolor.Mode) string) (string, []termcolor.Mode)
 }
 
 //Compile processes the template and returns a prompt string
@@ -52,33 +52,35 @@ func Compile(predefinedTemplate, template string, color bool) string {
 	//For each chunk of <[^<>]*> we process it in parallel putting in the channel the string to replace on template
 	for _, chunk := range chunks {
 		go func(chunk string) {
+			defer pluginsWg.Done()
 			processedChunk := chunk[1 : len(chunk)-1]
-			use := false
-			plugins := rePlugin.FindAllString(chunk, -1)
-			for _, rawPlugin := range plugins {
-				plugin := rawPlugin[1 : len(rawPlugin)-1]
-				if p, ok := mPlugins[plugin]; ok {
-					//TODO +options
-					err := p.Load(defaultOptions[predefinedTemplate])
-					if err != nil {
-						log.Printf("Unable to load plugin %s", plugin)
-						continue
-					}
-					output := p.Get(format)
-					if output != "" {
-						use = true
+			rawPlugin := rePlugin.FindString(chunk)
+			plugin := rawPlugin[1 : len(rawPlugin)-1]
+			if p, ok := mPlugins[plugin]; ok {
+				//TODO +options
+				err := p.Load(defaultOptions[predefinedTemplate])
+				if err != nil {
+					log.Printf("Unable to load plugin %s", plugin)
+					return
+				}
+				output, modes := p.Get(format)
+				if output != "" {
+					extra := strings.Split(processedChunk, rawPlugin)
+					for _, e := range extra {
+						useless, _ := regexp.MatchString("^[ ]*$", e)
+						if !useless {
+							processed := format(e, modes...)
+							processedChunk = strings.Replace(processedChunk, e, processed, -1)
+						}
 					}
 					processedChunk = strings.Replace(processedChunk, rawPlugin, output, -1)
+					pluginsOutput <- []string{chunk, format(processedChunk, modes...)}
 				} else {
-					log.Printf("Plugin %s not found", plugin)
+					pluginsOutput <- []string{chunk, ""}
 				}
-			}
-			if use {
-				pluginsOutput <- []string{chunk, processedChunk}
 			} else {
-				pluginsOutput <- []string{chunk, ""}
+				log.Printf("Plugin %s not found", plugin)
 			}
-			pluginsWg.Done()
 
 		}(chunk)
 	}
