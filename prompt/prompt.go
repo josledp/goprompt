@@ -101,13 +101,14 @@ func init() {
 		&plugins.Path{},
 		&plugins.Python{},
 		&plugins.User{},
+		&plugins.Hostname{},
 		&plugins.UserChar{},
 		&plugins.Golang{},
 	}
 
 	Templates = map[string]string{
-		"Evermeet": "<(%python%) ><%aws%|><%user% ><%lastcommand% ><%path%>< %git%><%userchar%> ",
-		"Fedora":   "[ <(%python%) ><%aws%|><%user% ><%lastcommand% ><%path%>< %git%> ]<%userchar%> ",
+		"Evermeet": "<(%python%) ><%aws%|><%user%@><%hostname%> <%lastcommand% ><%path%>< %git%><%userchar%> ",
+		"Fedora":   "[ <(%python%) ><%aws%|><%user%@><%hostname%> <%lastcommand% ><%path%>< %git%> ]<%userchar%> ",
 	}
 	defaultOptions = map[string]map[string]interface{}{
 		"Evermeet": map[string]interface{}{

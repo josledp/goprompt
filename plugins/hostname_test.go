@@ -7,33 +7,40 @@ import (
 	"github.com/josledp/termcolor"
 )
 
-func TestUser(t *testing.T) {
-
+func TestHostname(t *testing.T) {
+	host, err := os.Hostname()
+	if err != nil {
+		t.Fatal("Unable to get hostname")
+	}
 	testCases := []struct {
 		user     string
 		expected string
 	}{
 		{
 			user:     "testuser",
-			expected: "\\[\\033[0m\\]\\[\\033[1;32m\\]testuser\\[\\033[0m\\]",
+			expected: "\\[\\033[0m\\]\\[\\033[1;32m\\]" + host + "\\[\\033[0m\\]",
 		},
 		{
 			user:     "root",
-			expected: "",
+			expected: "\\[\\033[0m\\]\\[\\033[1;31m\\]" + host + "\\[\\033[0m\\]",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.user, func(t *testing.T) {
 			os.Setenv("USER", tc.user)
-			u := &User{}
-			u.Load(nil)
+			h := &Hostname{}
+			h.Load(nil)
 
-			if u.user != tc.user {
+			if h.user != tc.user {
 				t.Error("Invalid user")
 			}
 
-			output := u.Get(termcolor.EscapedFormat)
+			if h.hostname != host {
+				t.Error("Invalid host")
+			}
+
+			output := h.Get(termcolor.EscapedFormat)
 			if output != tc.expected {
 				t.Errorf("Expected %s\nGot      %s", tc.expected, output)
 			}
