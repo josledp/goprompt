@@ -1,217 +1,120 @@
 package prompt
 
 import (
-	"fmt"
-	"os"
-	"strconv"
+	"log"
+	"regexp"
 	"strings"
-	"time"
+	"sync"
 
+	"github.com/josledp/goprompt/plugins"
 	"github.com/josledp/termcolor"
 )
 
-const (
-	sDownArrow = "↓"
-	sUpArrow   = "↑"
-	sThreeDots = "…"
-	sDot       = "●"
-	sCheck     = "✔"
-	sFlag      = "⚑"
-	sAsterisk  = "⭑"
-	sCross     = "✖"
-)
-
-//The Prompt object
-type Prompt struct {
-	format   func(string, ...termcolor.Mode) string
-	style    string
-	fullpath bool
-	term     termInfo
-	aws      awsInfo
-	git      gitInfo
+//Plugin is the interface all the plugins MUST implement
+type Plugin interface {
+	Name() string
+	Load(options map[string]interface{}) error
+	Get(format func(string, ...termcolor.Mode) string) string
 }
 
-//New returns a new Prompt object
-func New(style string, pColor *bool, pFullpath *bool, noFetch bool) Prompt {
-	return newWithInfo(style, pColor, pFullpath, getTermInfo(), getAwsInfo(), getGitInfo(noFetch))
-}
-
-func newWithInfo(style string, pColor *bool, pFullpath *bool, ti termInfo, ai awsInfo, gi gitInfo) Prompt {
-
-	pr := Prompt{}
-	pr.style = style
-	pr.term = ti
-	pr.aws = ai
-	pr.git = gi
-
-	var color bool
-
-	switch style {
-	case "Evermeet":
-		color = true
-		pr.fullpath = true
-	case "Mac":
-		color = false
-		pr.fullpath = true
-	case "Fedora":
-		color = false
-		pr.fullpath = false
-	default:
-		fmt.Fprintln(os.Stderr, "Invalid style. Valid styles: Evermmet, Mac, Fedora")
-	}
-	if pColor != nil {
-		color = *pColor
-	}
-	if pFullpath != nil {
-		pr.fullpath = *pFullpath
-	}
+//Compile processes the template and returns a prompt string
+func Compile(predefinedTemplate, template string, color bool) string {
+	var format func(string, ...termcolor.Mode) string
+	prompt := template
 
 	if color {
-		pr.format = termcolor.EscapedFormat
+		format = termcolor.EscapedFormat
 	} else {
 
-		pr.format = func(s string, modes ...termcolor.Mode) string { return s }
+		format = func(s string, modes ...termcolor.Mode) string { return s }
 	}
-	return pr
+
+	// map plugin by name
+	mPlugins := make(map[string]Plugin)
+	for _, p := range availablePlugins {
+		mPlugins[p.Name()] = p
+	}
+
+	//Regular expresions for matching on template
+	reChunk, _ := regexp.Compile("<[^<>]*>")
+	rePlugin, _ := regexp.Compile("%[a-z]*%")
+	chunks := reChunk.FindAllString(template, -1)
+
+	//Channel for plugins to write (parallel plugin processing)
+	pluginsOutput := make(chan []string)
+	pluginsWg := sync.WaitGroup{}
+	pluginsWg.Add(len(chunks))
+	go func() {
+		pluginsWg.Wait()
+		close(pluginsOutput)
+	}()
+
+	//For each chunk of <[^<>]*> we process it in parallel putting in the channel the string to replace on template
+	for _, chunk := range chunks {
+		go func(chunk string) {
+			processedChunk := chunk[1 : len(chunk)-1]
+			use := false
+			plugins := rePlugin.FindAllString(chunk, -1)
+			for _, rawPlugin := range plugins {
+				plugin := rawPlugin[1 : len(rawPlugin)-1]
+				if p, ok := mPlugins[plugin]; ok {
+					//TODO +options
+					err := p.Load(defaultOptions[predefinedTemplate])
+					if err != nil {
+						log.Printf("Unable to load plugin %s", plugin)
+						continue
+					}
+					output := p.Get(format)
+					if output != "" {
+						use = true
+					}
+					processedChunk = strings.Replace(processedChunk, rawPlugin, output, -1)
+				} else {
+					log.Printf("Plugin %s not found", plugin)
+				}
+			}
+			if use {
+				pluginsOutput <- []string{chunk, processedChunk}
+			} else {
+				pluginsOutput <- []string{chunk, ""}
+			}
+			pluginsWg.Done()
+
+		}(chunk)
+	}
+	for rep := range pluginsOutput {
+		prompt = strings.Replace(prompt, rep[0], rep[1], -1)
+	}
+	return prompt
 }
 
-//GetPrompt returns prompt
-func (pr Prompt) GetPrompt() string {
+//Templates is a map with predefined templates
+var Templates map[string]string
+var defaultOptions map[string]map[string]interface{}
+var availablePlugins []Plugin
 
-	switch pr.style {
-	case "Evermeet":
-		return pr.makePromptEvermeet()
-	case "Mac":
-		return pr.makePromptMac()
-	case "Fedora":
-		return pr.makePromptFedora()
-	}
-	return "Not suppported"
-}
-
-func (pr Prompt) makePromptMac() string {
-	return "Not implemented"
-}
-
-func (pr Prompt) makePromptFedora() string {
-	//Formatting
-	var userPromptInfo, lastCommandPromptInfo, pwdPromptInfo, virtualEnvPromptInfo, awsPromptInfo, gitPromptInfo string
-
-	promptEnd := "$"
-
-	if pr.term.user == "root" {
-		userPromptInfo = pr.format(pr.term.user+"@"+pr.term.hostname, termcolor.Bold, termcolor.FgRed)
-		promptEnd = "#"
-	} else {
-		userPromptInfo = pr.format(pr.term.user+"@"+pr.term.hostname, termcolor.Bold, termcolor.FgGreen)
-	}
-	if pr.term.lastrc != "" {
-		lastCommandPromptInfo = pr.format(pr.term.lastrc, termcolor.FgHiYellow) + " "
-	}
-	if !pr.fullpath {
-		pwd := strings.Split(pr.term.pwd, "/")
-		pr.term.pwd = pwd[len(pwd)-1]
-	}
-	pwdPromptInfo = pr.format(pr.term.pwd, termcolor.Bold, termcolor.FgBlue)
-	if pr.term.virtualEnv != "" {
-		virtualEnvPromptInfo = pr.format(fmt.Sprintf("(%s) ", pr.term.virtualEnv), termcolor.FgBlue)
-	}
-	gitPromptInfo = pr.makeGitPrompt()
-
-	if pr.aws.role != "" {
-		t := termcolor.FgGreen
-		d := time.Until(pr.aws.expire).Seconds()
-		if d < 0 {
-			t = termcolor.FgRed
-		} else if d < 600 {
-			t = termcolor.FgYellow
-		}
-		awsPromptInfo = pr.format(pr.aws.role, t) + "|"
+func init() {
+	availablePlugins = []Plugin{
+		&plugins.Aws{},
+		&plugins.Git{},
+		&plugins.LastCommand{},
+		&plugins.Path{},
+		&plugins.Python{},
+		&plugins.User{},
+		&plugins.UserChar{},
+		&plugins.Golang{},
 	}
 
-	return fmt.Sprintf("[%s%s%s %s%s%s]%s ", virtualEnvPromptInfo, awsPromptInfo, userPromptInfo, lastCommandPromptInfo, pwdPromptInfo, gitPromptInfo, promptEnd)
-}
-
-func (pr Prompt) makePromptEvermeet() string {
-	//Formatting
-	var userPromptInfo, lastCommandPromptInfo, pwdPromptInfo, virtualEnvPromptInfo, awsPromptInfo, gitPromptInfo string
-
-	promptEnd := "$"
-
-	if pr.term.user == "root" {
-		userPromptInfo = pr.format(pr.term.hostname, termcolor.Bold, termcolor.FgRed)
-		promptEnd = "#"
-	} else {
-		userPromptInfo = pr.format(pr.term.user+"@"+pr.term.hostname, termcolor.Bold, termcolor.FgGreen)
+	Templates = map[string]string{
+		"Evermeet": "<(%python%) ><%aws%|><%user% ><%lastcommand% ><%path%>< %git%><%userchar%> ",
+		"Fedora":   "[ <(%python%) ><%aws%|><%user% ><%lastcommand% ><%path%>< %git%> ]<%userchar%> ",
 	}
-	if pr.term.lastrc != "" {
-		lastCommandPromptInfo = pr.format(pr.term.lastrc, termcolor.FgHiYellow) + " "
+	defaultOptions = map[string]map[string]interface{}{
+		"Evermeet": map[string]interface{}{
+			"path.fullpath": true,
+		},
+		"Fedora": map[string]interface{}{
+			"path.fullpath": false,
+		},
 	}
-	if !pr.fullpath {
-		pwd := strings.Split(pr.term.pwd, "/")
-		pr.term.pwd = pwd[len(pwd)-1]
-	}
-	pwdPromptInfo = pr.format(pr.term.pwd, termcolor.Bold, termcolor.FgBlue)
-	if pr.term.virtualEnv != "" {
-		virtualEnvPromptInfo = pr.format(fmt.Sprintf("(%s) ", pr.term.virtualEnv), termcolor.FgBlue)
-	}
-	gitPromptInfo = pr.makeGitPrompt()
-
-	if pr.aws.role != "" {
-		t := termcolor.FgGreen
-		d := time.Until(pr.aws.expire).Seconds()
-		if d < 0 {
-			t = termcolor.FgRed
-		} else if d < 600 {
-			t = termcolor.FgYellow
-		}
-		awsPromptInfo = pr.format(pr.aws.role, t) + "|"
-	}
-
-	return fmt.Sprintf("%s%s%s %s%s%s%s ", virtualEnvPromptInfo, awsPromptInfo, userPromptInfo, lastCommandPromptInfo, pwdPromptInfo, gitPromptInfo, promptEnd)
-}
-
-func (pr Prompt) makeGitPrompt() string {
-	var gitPromptInfo string
-	if pr.git.branch != "" {
-		gitPromptInfo = " " + pr.format(pr.git.branch, termcolor.FgMagenta)
-		space := " "
-		if pr.git.commitsBehind > 0 {
-			gitPromptInfo += space + sDownArrow + "·" + strconv.Itoa(pr.git.commitsBehind)
-			space = ""
-		}
-		if pr.git.commitsAhead > 0 {
-			gitPromptInfo += space + sUpArrow + "·" + strconv.Itoa(pr.git.commitsAhead)
-			space = ""
-		}
-		if !pr.git.hasUpstream {
-			gitPromptInfo += space + sAsterisk
-			space = ""
-		}
-		gitPromptInfo += "|"
-		synced := true
-		if pr.git.conflicted > 0 {
-			gitPromptInfo += pr.format(sCross+strconv.Itoa(pr.git.conflicted), termcolor.FgRed)
-			synced = false
-		}
-		if pr.git.staged > 0 {
-			gitPromptInfo += pr.format(sDot+strconv.Itoa(pr.git.staged), termcolor.FgCyan)
-			synced = false
-		}
-		if pr.git.changed > 0 {
-			gitPromptInfo += pr.format("+"+strconv.Itoa(pr.git.changed), termcolor.FgCyan)
-			synced = false
-		}
-		if pr.git.untracked > 0 {
-			gitPromptInfo += pr.format(sThreeDots+strconv.Itoa(pr.git.untracked), termcolor.FgCyan)
-			synced = false
-		}
-		if synced {
-			gitPromptInfo += pr.format(sCheck, termcolor.FgHiGreen)
-		}
-		if pr.git.stashed > 0 {
-			gitPromptInfo += pr.format(sFlag+strconv.Itoa(pr.git.stashed), termcolor.FgHiMagenta)
-		}
-	}
-	return gitPromptInfo
 }

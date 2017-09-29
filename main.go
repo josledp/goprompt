@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/josledp/goprompt/prompt"
+
 	"github.com/josledp/termcolor"
 )
 
@@ -15,54 +16,40 @@ var logger *log.Logger
 type formatFunc func(string, ...termcolor.Mode) string
 
 func main() {
-	var fullpath, noFullpath bool
-	var color, noColor bool
-	var pFullpath, pColor *bool
-	var noFetch bool
-	var style string
+	var noColor bool
+	var template string
+	var customTemplate string
+	var t string
 
-	//pushing flag package to its limits :)
-	flag.StringVar(&style, "style", "Evermeet", "Select style: Evermeet, Mac, Fedora")
-	flag.BoolVar(&fullpath, "fullpath", true, "Show fullpath on prompt. The default value depends on the style")
-	flag.BoolVar(&noFullpath, "no-fullpath", false, "Show fullpath on prompt. The default value depends on the style")
-	flag.BoolVar(&color, "color", true, "Show color on prompt. The default value depends on the style")
-	flag.BoolVar(&noColor, "no-color", false, "Show color on prompt. The default value depends on the style")
-	flag.BoolVar(&noFetch, "no-fetch", false, "If set avoid git helper trying to update git repository information")
+	flag.StringVar(&template, "template", "Evermeet", "template to use for the prompt (Evermeet/Fedora)")
+	flag.StringVar(&customTemplate, "custom-template", "<(%python%) ><%aws%|><%user% ><%lastcommand% ><%path%>< %git%>$ ", "template to use for the prompt")
+	flag.BoolVar(&noColor, "no-color", false, "Disable color on prompt")
+
 	flag.Parse()
 
 	flagsSet := make(map[string]struct{})
 	flag.Visit(func(f *flag.Flag) { flagsSet[f.Name] = struct{}{} })
 
-	_, colorSet := flagsSet["color"]
-	_, noColorSet := flagsSet["no-color"]
-	_, fullpathSet := flagsSet["fullpath"]
-	_, noFullpathSet := flagsSet["no-fullpath"]
+	_, templateSet := flagsSet["template"]
+	_, customTemplateSet := flagsSet["custom-template"]
 
-	if colorSet && noColorSet {
-		fmt.Fprintf(os.Stderr, "Please use --color or --no-color, not both")
+	if templateSet && customTemplateSet {
+		fmt.Fprintf(os.Stderr, "Please provice --template or --custom-template, but not both!")
 		os.Exit(1)
 	}
 
-	if fullpathSet && noFullpathSet {
-		fmt.Fprintf(os.Stderr, "Please use --fullpath or --no-fullpath, not both")
-		os.Exit(1)
+	if customTemplateSet {
+		t = customTemplate
+		template = ""
+	} else {
+		var ok bool
+		t, ok = prompt.Templates[template]
+		if !ok {
+			fmt.Fprintf(os.Stderr, "Template %s not found", template)
+		}
 	}
 
-	if colorSet {
-		pColor = &color
-	} else if noColorSet {
-		pColor = &noColor
-		*pColor = !noColor
-	}
-
-	if fullpathSet {
-		pFullpath = &fullpath
-	} else if noFullpathSet {
-		pFullpath = &noFullpath
-		*pFullpath = !noFullpath
-	}
-
-	pr := prompt.New(style, pColor, pFullpath, noFetch)
-	fmt.Println(pr.GetPrompt())
+	pr := prompt.Compile(template, t, !noColor)
+	fmt.Println(pr)
 
 }
