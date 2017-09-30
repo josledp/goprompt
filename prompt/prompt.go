@@ -23,7 +23,11 @@ func Compile(template string, color bool, options map[string]interface{}) string
 	prompt := template
 
 	if color {
-		format = termcolor.EscapedFormat
+		if options["fish"].(bool) {
+			format = termcolor.Format
+		} else {
+			format = termcolor.EscapedFormat
+		}
 	} else {
 
 		format = func(s string, modes ...termcolor.Mode) string { return s }
