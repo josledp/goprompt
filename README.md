@@ -12,16 +12,16 @@ AWS_SESSION_EXPIRATION information about the current assumed role.
  out the stashes part on the Load function)
 * go get github.com/josledp/goprompt
 * go install github.com/josledp/goprompt
-* For bash:
-  * link goprompt.sh to your home (or any other directory you may want)
-  * add to your .bashrc:
-    source ~/goprompt.sh #Or the path you copied goprompt.sh on
+* For bash/zsh:
+  * link goprompt.(bash|zsh) to your home (or any other directory you may want)
+  * add to your .bashrc/.zshrc:
+    source ~/goprompt.(bash|zsh) #Or the path you linked the file on
 * For Fish:
   * link fish_prompt.fish in ~/.config/fish/functions (remove any other fish_prompt
     function you may have)
 
 ## Customization
-* set GOPROMPT_OPTIONS in your .bashrc (or fishd) with your favourites goprompt options.
+* set GOPROMPT_OPTIONS in your .bashrc|fishd|.zshrc with your favourites goprompt options.
   You can change it dinamically (so you can play with it until you find the
   right options for you in the console before setting it up)
 
