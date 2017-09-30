@@ -17,7 +17,7 @@ AWS_SESSION_EXPIRATION information about the current assumed role.
   * add to your .bashrc:
     source ~/goprompt.sh #Or the path you copied goprompt.sh on
 * For Fish:
-  * link goprompt.fish in ~/.config/fish/functions (remove any other fish_prompt
+  * link fish_prompt.fish in ~/.config/fish/functions (remove any other fish_prompt
     function you may have)
 
 ## Customization

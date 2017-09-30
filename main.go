@@ -20,12 +20,10 @@ func main() {
 	var template string
 	var customTemplate string
 	var t string
-	var fish bool
 
 	flag.StringVar(&template, "template", "Evermeet", "template to use for the prompt (Evermeet/Fedora)")
 	flag.StringVar(&customTemplate, "custom-template", "<(%python%) ><%aws%|><%user% ><%lastcommand% ><%path%>< %git%>$ ", "template to use for the prompt")
 	flag.BoolVar(&noColor, "no-color", false, "Disable color on prompt")
-	flag.BoolVar(&fish, "fish", false, "Use this flag to enable prompt for fish shell")
 
 	flag.Parse()
 
@@ -40,8 +38,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	options := make(map[string]interface{})
-
+	var options map[string]interface{}
 	if customTemplateSet {
 		t = customTemplate
 	} else {
@@ -53,7 +50,6 @@ func main() {
 		options = defaultOptions[template]
 
 	}
-	options["fish"] = fish
 
 	pr := prompt.Compile(t, !noColor, options)
 	fmt.Println(pr)

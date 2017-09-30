@@ -1,7 +1,10 @@
 package prompt
 
 import (
+	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -23,10 +26,19 @@ func Compile(template string, color bool, options map[string]interface{}) string
 	prompt := template
 
 	if color {
-		if options["fish"].(bool) {
-			format = termcolor.Format
-		} else {
+
+		shell := detectShell()
+		switch shell {
+		case "bash":
 			format = termcolor.EscapedFormat
+		case "fish":
+			format = termcolor.Format
+		case "zsh":
+			format = termcolor.Format
+
+		default:
+			//Defaut failsafe
+			format = func(s string, modes ...termcolor.Mode) string { return s }
 		}
 	} else {
 
@@ -109,4 +121,21 @@ func init() {
 		&plugins.Golang{},
 	}
 
+}
+
+func detectShell() string {
+	pid := os.Getppid()
+	cmdlineFile := fmt.Sprintf("/proc/%d/cmdline", pid)
+	cmdline, err := ioutil.ReadFile(cmdlineFile)
+	if err != nil {
+		return "unknown"
+	}
+
+	shells := []string{"bash", "zsh", "fish"}
+	for _, shell := range shells {
+		if matches, _ := regexp.Match(shell, cmdline); matches {
+			return shell
+		}
+	}
+	return "unknown"
 }
