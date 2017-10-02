@@ -62,7 +62,7 @@ func TestPath(t *testing.T) {
 				if p.pwd != tc.expectedPwd {
 					t.Fatalf("Pwd do not match:\nGot:      %s\nExpected: %s", p.pwd, tc.expectedPwd)
 				}
-				pr := p.Get(termcolor.EscapedFormat)
+				pr, _ := p.Get(termcolor.EscapedFormat)
 				if pr != tc.expectedPrompt {
 					t.Fatalf("Generated prompt do not match:\n%s\n%s", pr, tc.expectedPrompt)
 				}

@@ -18,7 +18,7 @@ func TestPython(t *testing.T) {
 		t.Error("Invalid virtualenv")
 	}
 
-	output := p.Get(termcolor.EscapedFormat)
+	output, _ := p.Get(termcolor.EscapedFormat)
 	if output != expected {
 		t.Errorf("Expected %s\nGot      %s", expected, output)
 	}

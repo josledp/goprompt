@@ -40,7 +40,7 @@ func TestHostname(t *testing.T) {
 				t.Error("Invalid host")
 			}
 
-			output := h.Get(termcolor.EscapedFormat)
+			output, _ := h.Get(termcolor.EscapedFormat)
 			if output != tc.expected {
 				t.Errorf("Expected %s\nGot      %s", tc.expected, output)
 			}

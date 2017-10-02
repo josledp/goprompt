@@ -33,7 +33,7 @@ func TestUser(t *testing.T) {
 				t.Error("Invalid user")
 			}
 
-			output := u.Get(termcolor.EscapedFormat)
+			output, _ := u.Get(termcolor.EscapedFormat)
 			if output != tc.expected {
 				t.Errorf("Expected %s\nGot      %s", tc.expected, output)
 			}

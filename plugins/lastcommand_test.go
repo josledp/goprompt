@@ -19,7 +19,7 @@ func TestLastCommand(t *testing.T) {
 		t.Error("Invalid Last command rc")
 	}
 
-	output := lc.Get(termcolor.EscapedFormat)
+	output, _ := lc.Get(termcolor.EscapedFormat)
 	if output != expected {
 		t.Errorf("Expected %s\nGot      %s", expected, output)
 	}

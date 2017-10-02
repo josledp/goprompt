@@ -18,7 +18,7 @@ func TestGolang(t *testing.T) {
 		t.Error("Invalid golang version")
 	}
 
-	output := g.Get(termcolor.EscapedFormat)
+	output, _ := g.Get(termcolor.EscapedFormat)
 	if output != expected {
 		t.Errorf("Expected %s\nGot      %s", expected, output)
 	}

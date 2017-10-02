@@ -42,10 +42,10 @@ func (a Aws) Get(format func(string, ...termcolor.Mode) string) (string, []termc
 		d := time.Until(a.expire).Seconds()
 		if d < 0 {
 			t = termcolor.FgRed
-		} else if d < 1800 {
-			t = termcolor.FgBlue
 		} else if d < 600 {
 			t = termcolor.FgYellow
+		} else if d < 1800 {
+			t = termcolor.FgBlue
 		}
 		return format(a.role, t), nil
 	}

@@ -24,7 +24,7 @@ func TestAws(t *testing.T) {
 	if !(time.Unix(1506345326, int64(0)).Equal(a.expire)) {
 		t.Error("Invalid AWS expire time")
 	}
-	output := a.Get(termcolor.EscapedFormat)
+	output, _ := a.Get(termcolor.EscapedFormat)
 	if output != expected {
 		t.Errorf("Expected %s\nGot      %s", expected, output)
 	}
