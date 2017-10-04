@@ -19,7 +19,7 @@ func (Python) Name() string {
 }
 
 //Load is the load function of the plugin
-func (p *Python) Load(options map[string]interface{}) error {
+func (p *Python) Load(Prompter) error {
 	virtualEnv, ve := os.LookupEnv("VIRTUAL_ENV")
 	if ve {
 		ave := strings.Split(virtualEnv, "/")

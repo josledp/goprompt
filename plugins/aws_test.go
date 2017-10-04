@@ -15,7 +15,7 @@ func TestAws(t *testing.T) {
 	expected := "\\[\\033[0m\\]\\[\\033[31m\\]test:zz\\[\\033[0m\\]"
 
 	a := &Aws{}
-	a.Load(map[string]interface{}{})
+	a.Load(nil)
 
 	if a.role != "test:zz" {
 		t.Error("Invalid AWS role")

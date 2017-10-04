@@ -18,7 +18,7 @@ func (UserChar) Name() string {
 }
 
 //Load is the load function of the plugin
-func (uc *UserChar) Load(options map[string]interface{}) error {
+func (uc *UserChar) Load(Prompter) error {
 	uc.user = os.Getenv("USER")
 	if uc.user == "" {
 		return fmt.Errorf("Unable to get USER")

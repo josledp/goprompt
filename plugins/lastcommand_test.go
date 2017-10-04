@@ -13,7 +13,7 @@ func TestLastCommand(t *testing.T) {
 	expected := "\\[\\033[0m\\]\\[\\033[93m\\]10\\[\\033[0m\\]"
 
 	lc := &LastCommand{}
-	lc.Load(map[string]interface{}{})
+	lc.Load(nil)
 
 	if lc.lastrc != "10" {
 		t.Error("Invalid Last command rc")
@@ -31,7 +31,7 @@ func TestLastCommandError(t *testing.T) {
 	os.Setenv("LAST_COMMAND_RC", "")
 
 	lc := &LastCommand{}
-	err := lc.Load(map[string]interface{}{})
+	err := lc.Load(nil)
 
 	if err.Error() != "Unable to get LAST_COMMAND_RC" {
 		t.Errorf("Invalid Last command Error: %v", err)

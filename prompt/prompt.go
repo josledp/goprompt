@@ -13,21 +13,48 @@ import (
 	"github.com/josledp/termcolor"
 )
 
+//Prompt is the struct with the prompt options/config
+type Prompt struct {
+	options map[string]interface{}
+}
+
 //Plugin is the interface all the plugins MUST implement
 type Plugin interface {
 	Name() string
-	Load(options map[string]interface{}) error
+	Load(pr plugins.Prompter) error
 	Get(format func(string, ...termcolor.Mode) string) (string, []termcolor.Mode)
 }
 
+//New returns a new prompt
+func New(options map[string]interface{}) Prompt {
+	return Prompt{options}
+}
+
+//GetOption returns the option value for key
+func (pr Prompt) GetOption(key string) (interface{}, bool) {
+	value, ok := pr.options[key]
+	return value, ok
+}
+
+//GetConfig return the config value for key
+func (pr Prompt) GetConfig(key string) (interface{}, bool) {
+	value, ok := 0, false
+	return value, ok
+}
+
+//SetConfig sets a config value
+func (pr Prompt) SetConfig(key string, value interface{}) error {
+	return nil
+}
+
 //Compile processes the template and returns a prompt string
-func Compile(template string, color bool, options map[string]interface{}) string {
+func (pr Prompt) Compile(template string, color bool) string {
 	var format func(string, ...termcolor.Mode) string
-	prompt := template
+	output := template
 
 	if color {
 
-		shell := detectShell()
+		shell := pr.detectShell()
 		switch shell {
 		case "bash":
 			format = termcolor.EscapedFormat
@@ -74,7 +101,7 @@ func Compile(template string, color bool, options map[string]interface{}) string
 			plugin := rawPlugin[1 : len(rawPlugin)-1]
 			if p, ok := mPlugins[plugin]; ok {
 				//TODO +options
-				err := p.Load(options)
+				err := p.Load(pr)
 				if err != nil {
 					log.Printf("Unable to load plugin %s", plugin)
 					return
@@ -101,9 +128,9 @@ func Compile(template string, color bool, options map[string]interface{}) string
 		}(chunk)
 	}
 	for rep := range pluginsOutput {
-		prompt = strings.Replace(prompt, rep[0], rep[1], -1)
+		output = strings.Replace(output, rep[0], rep[1], -1)
 	}
-	return prompt
+	return output
 }
 
 var availablePlugins []Plugin
@@ -123,7 +150,7 @@ func init() {
 
 }
 
-func detectShell() string {
+func (p Prompt) detectShell() string {
 	pid := os.Getppid()
 	cmdlineFile := fmt.Sprintf("/proc/%d/cmdline", pid)
 	cmdline, err := ioutil.ReadFile(cmdlineFile)

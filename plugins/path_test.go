@@ -58,7 +58,7 @@ func TestPath(t *testing.T) {
 					os.Setenv(k, v)
 				}
 				p := &Path{}
-				p.Load(tc.options)
+				p.Load(mockPrompt{tc.options})
 				if p.pwd != tc.expectedPwd {
 					t.Fatalf("Pwd do not match:\nGot:      %s\nExpected: %s", p.pwd, tc.expectedPwd)
 				}
@@ -77,7 +77,7 @@ func TestPathError(t *testing.T) {
 	os.Setenv("PWD", "")
 
 	p := &Path{}
-	err := p.Load(map[string]interface{}{})
+	err := p.Load(nil)
 
 	if err.Error() != "Unable to get PWD" {
 		t.Errorf("Invalid Last command Error: %v", err)

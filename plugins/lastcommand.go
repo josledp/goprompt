@@ -18,7 +18,7 @@ func (LastCommand) Name() string {
 }
 
 //Load is the load function of the plugin
-func (lc *LastCommand) Load(options map[string]interface{}) error {
+func (lc *LastCommand) Load(Prompter) error {
 
 	lc.lastrc = os.Getenv("LAST_COMMAND_RC")
 	if lc.lastrc == "" {

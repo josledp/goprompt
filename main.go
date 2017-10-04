@@ -50,8 +50,8 @@ func main() {
 		options = defaultOptions[template]
 
 	}
-
-	pr := prompt.Compile(t, !noColor, options)
-	fmt.Println(pr)
+	pr := prompt.New(options)
+	output := pr.Compile(t, !noColor)
+	fmt.Println(output)
 
 }

@@ -12,7 +12,7 @@ func TestGolang(t *testing.T) {
 	expected := "\\[\\033[0m\\]\\[\\033[34m\\]" + golang + "\\[\\033[0m\\]"
 
 	g := &Golang{}
-	g.Load(map[string]interface{}{})
+	g.Load(nil)
 
 	if g.version != golang {
 		t.Error("Invalid golang version")

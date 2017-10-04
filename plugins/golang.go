@@ -17,7 +17,7 @@ func (Golang) Name() string {
 }
 
 //Load is the load function of the plugin
-func (g *Golang) Load(options map[string]interface{}) error {
+func (g *Golang) Load(Prompter) error {
 	g.version = runtime.Version()
 	return nil
 }

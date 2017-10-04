@@ -19,7 +19,7 @@ func (Hostname) Name() string {
 }
 
 //Load is the load function of the plugin
-func (h *Hostname) Load(options map[string]interface{}) error {
+func (h *Hostname) Load(Prompter) error {
 	var err error
 	h.user = os.Getenv("USER")
 

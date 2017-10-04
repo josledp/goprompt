@@ -19,7 +19,7 @@ func (User) Name() string {
 }
 
 //Load is the load function of the plugin
-func (u *User) Load(options map[string]interface{}) error {
+func (u *User) Load(Prompter) error {
 	u.user = os.Getenv("USER")
 	if u.user == "" {
 		return fmt.Errorf("Unable to get USER")

@@ -40,7 +40,7 @@ func (Git) Name() string {
 }
 
 //Load is the load function of the plugin
-func (g *Git) Load(options map[string]interface{}) error {
+func (g *Git) Load(Prompter) error {
 	gitpath, err := git2go.Discover(".", false, []string{"/"})
 	if err == nil {
 		repository, err := git2go.OpenRepository(gitpath)

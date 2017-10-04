@@ -21,7 +21,7 @@ func (Aws) Name() string {
 }
 
 //Load is the load function of the plugin
-func (a *Aws) Load(options map[string]interface{}) error {
+func (a *Aws) Load(Prompter) error {
 	role := os.Getenv("AWS_ROLE")
 	if role != "" {
 		tmp := strings.Split(role, ":")
