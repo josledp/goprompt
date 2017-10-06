@@ -3,8 +3,8 @@ package plugins
 //Prompter is the interface which provides options/config to the plugin
 type Prompter interface {
 	GetOption(string) (interface{}, bool)
-	GetConfig(string) (interface{}, bool)
-	SetConfig(string, interface{}) error
+	GetCache(string) (interface{}, bool)
+	Cache(string, interface{}) error
 }
 
 type mockPrompt struct {
@@ -16,10 +16,10 @@ func (m mockPrompt) GetOption(key string) (interface{}, bool) {
 	return value, ok
 }
 
-func (m mockPrompt) GetConfig(key string) (interface{}, bool) {
+func (m mockPrompt) GetCache(key string) (interface{}, bool) {
 	return nil, false
 }
 
-func (m mockPrompt) SetConfig(key string, value interface{}) error {
+func (m mockPrompt) Cache(key string, value interface{}) error {
 	return nil
 }

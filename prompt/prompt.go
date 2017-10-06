@@ -16,6 +16,7 @@ import (
 //Prompt is the struct with the prompt options/config
 type Prompt struct {
 	options map[string]interface{}
+	cache   *Cache
 }
 
 //Plugin is the interface all the plugins MUST implement
@@ -25,9 +26,13 @@ type Plugin interface {
 	Get(format func(string, ...termcolor.Mode) string) (string, []termcolor.Mode)
 }
 
-//New returns a new prompt
+//New returns a new promp
 func New(options map[string]interface{}) Prompt {
-	return Prompt{options}
+	c, err := newCache()
+	if err != nil {
+		log.Printf("unable to initializa cache: %v", err)
+	}
+	return Prompt{options, c}
 }
 
 //GetOption returns the option value for key
@@ -36,14 +41,22 @@ func (pr Prompt) GetOption(key string) (interface{}, bool) {
 	return value, ok
 }
 
-//GetConfig return the config value for key
-func (pr Prompt) GetConfig(key string) (interface{}, bool) {
-	value, ok := 0, false
+//GetCache recovers a value from cache
+func (pr Prompt) GetCache(key string) (interface{}, bool) {
+	//Encapsulate more cache?
+	if pr.cache == nil {
+		return nil, false
+	}
+	value, ok := pr.cache.data[key]
 	return value, ok
 }
 
-//SetConfig sets a config value
-func (pr Prompt) SetConfig(key string, value interface{}) error {
+//Cache caches a key, value on cache
+func (pr Prompt) Cache(key string, value interface{}) error {
+	if pr.cache == nil {
+		return fmt.Errorf("Cache not initialized")
+	}
+	pr.cache.data[key] = value
 	return nil
 }
 
@@ -103,7 +116,7 @@ func (pr Prompt) Compile(template string, color bool) string {
 				//TODO +options
 				err := p.Load(pr)
 				if err != nil {
-					log.Printf("Unable to load plugin %s", plugin)
+					log.Printf("Unable to load plugin %s: %v", plugin, err)
 					return
 				}
 				output, modes := p.Get(format)
@@ -129,6 +142,10 @@ func (pr Prompt) Compile(template string, color bool) string {
 	}
 	for rep := range pluginsOutput {
 		output = strings.Replace(output, rep[0], rep[1], -1)
+	}
+	err := pr.cache.save()
+	if err != nil {
+		log.Printf("Unable to save cache: %v", err)
 	}
 	return output
 }

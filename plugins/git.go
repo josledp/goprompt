@@ -3,7 +3,11 @@ package plugins
 import (
 	"fmt"
 	"log"
+	"os"
+	"os/exec"
 	"strconv"
+	"syscall"
+	"time"
 
 	"github.com/josledp/termcolor"
 	git2go "gopkg.in/libgit2/git2go.v26"
@@ -40,7 +44,7 @@ func (Git) Name() string {
 }
 
 //Load is the load function of the plugin
-func (g *Git) Load(Prompter) error {
+func (g *Git) Load(pr Prompter) error {
 	gitpath, err := git2go.Discover(".", false, []string{"/"})
 	if err == nil {
 		repository, err := git2go.OpenRepository(gitpath)
@@ -125,17 +129,15 @@ func (g *Git) Load(Prompter) error {
 		}
 		defer localRef.Free()
 
-		//Get commits Ahead/Behind
-
 		localBranch := localRef.Branch()
 		if err != nil {
-			log.Fatalln("Error getting local branch: ", err)
+			return fmt.Errorf("Error getting local branch: %v", err)
 		}
 
 		if isHead, _ := localBranch.IsHead(); isHead {
 			g.branch = localRef.Shorthand()
 		} else {
-			g.branch = localRef.Target().String()[:7]
+			g.branch = ":" + localRef.Target().String()[:7]
 			g.detached = true
 		}
 
@@ -145,12 +147,37 @@ func (g *Git) Load(Prompter) error {
 			defer remoteRef.Free()
 
 			g.hasUpstream = true
-			// Fetch!!
+			pwd, err := os.Getwd()
+			if err == nil {
+				key := fmt.Sprintf("git-%s-fetch", pwd)
+				last, ok := pr.GetCache(key)
+				var lastTime time.Time
+				if last != nil {
+					lastTime, err = time.Parse(time.RFC3339, last.(string))
+					if err != nil {
+						log.Printf("Error loading git last fetch time: %v", err)
+					}
+				}
+				if !ok || time.Since(lastTime) > 300*time.Second {
+					pa := syscall.ProcAttr{}
+					pa.Env = os.Environ()
+					pa.Dir = pwd
+					gitcommand, err := exec.LookPath("git")
+					if err != nil {
+						log.Printf("git command not found: %v", err)
+					} else {
+						_, err = syscall.ForkExec(gitcommand, []string{gitcommand, "fetch"}, &pa)
+						if err != nil {
+							//Silently fail?
+							log.Printf("Error fetching: %v", err)
+						} else {
+							pr.Cache(key, time.Now())
+						}
+					}
+				}
+			}
 
 			if !remoteRef.Target().Equal(localRef.Target()) {
-				if err != nil {
-					return fmt.Errorf("Error getting merge bases: %v", err)
-				}
 				g.commitsAhead, g.commitsBehind, err = repository.AheadBehind(localRef.Target(), remoteRef.Target())
 				if err != nil {
 					return fmt.Errorf("Error getting commitsAhead/Behing: %v", err)
