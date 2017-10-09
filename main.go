@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/josledp/goprompt/config"
 	"github.com/josledp/goprompt/prompt"
 
 	"github.com/josledp/termcolor"
@@ -23,7 +22,7 @@ func main() {
 	var customTemplate string
 	var t string
 
-	config, err := config.New(os.Getenv("HOME") + "/.config/goprompt/goprompt.json")
+	config, err := prompt.NewConfig(os.Getenv("HOME") + "/.config/goprompt/goprompt.json")
 	if err != nil {
 		log.Fatalf("unable to get config: %v", err)
 	}

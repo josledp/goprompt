@@ -1,4 +1,4 @@
-package config
+package prompt
 
 import (
 	"encoding/json"
@@ -29,7 +29,7 @@ func init() {
 }
 
 //New loads and returns the config
-func New(file string) (Config, error) {
+func NewConfig(file string) (Config, error) {
 	var err error
 	c := Config{file: file}
 	if _, osErr := os.Stat(c.file); os.IsNotExist(osErr) {
