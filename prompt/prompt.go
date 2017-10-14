@@ -56,6 +56,9 @@ func (pr Prompt) Cache(key string, value interface{}) error {
 	if pr.cache == nil {
 		return fmt.Errorf("Cache not initialized")
 	}
+	if pr.cache.data == nil {
+		pr.cache.data = make(map[string]interface{})
+	}
 	pr.cache.data[key] = value
 	return nil
 }
