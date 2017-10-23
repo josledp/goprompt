@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/josledp/goprompt/plugins"
+	"github.com/josledp/goprompt/prompt/plugins"
 	"github.com/josledp/termcolor"
 )
 
