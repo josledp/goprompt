@@ -170,7 +170,7 @@ func init() {
 
 }
 
-func (p Prompt) detectShell() string {
+func (pr Prompt) detectShell() string {
 	pid := os.Getppid()
 	cmdlineFile := fmt.Sprintf("/proc/%d/cmdline", pid)
 	cmdline, err := ioutil.ReadFile(cmdlineFile)
