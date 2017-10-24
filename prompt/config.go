@@ -15,20 +15,11 @@ type Config struct {
 }
 
 type parameters struct {
-	Templates map[string]string                 `json:"templates"`
-	Options   map[string]map[string]interface{} `json:"options"`
+	CustomTemplate string                 `json:"custom_template"`
+	Options        map[string]interface{} `json:"options"`
 }
 
-var defaultTemplates map[string]string
-
-func init() {
-	defaultTemplates = map[string]string{
-		"Evermeet": "<(%python%) ><%aws%|><%user%@><%hostname%> <%lastcommand% ><%path%>< %git%><%userchar%> ",
-		"Fedora":   "[ <(%python%) ><%aws%|><%user%@><%hostname%> <%lastcommand% ><%path%>< %git%> ]<%userchar%> ",
-	}
-}
-
-//New loads and returns the config
+//NewConfig loads and returns the config
 func NewConfig(file string) (Config, error) {
 	var err error
 	c := Config{file: file}
@@ -37,28 +28,12 @@ func NewConfig(file string) (Config, error) {
 		if err != nil {
 			return c, fmt.Errorf("unable to create config path %s: %v", path.Dir(c.file), err)
 		}
-		c.params = parameters{
-			Templates: defaultTemplates,
-			Options: map[string]map[string]interface{}{
-				"Evermeet": map[string]interface{}{
-					"path.fullpath": 1,
-				},
-				"Fedora": map[string]interface{}{
-					"path.fullpath": 0,
-				},
-			},
-		}
+		c.params = parameters{}
 		err = c.save()
 	} else {
 		err = c.load()
-		if _, ok := c.params.Templates["Evermeet"]; !ok {
-			if c.params.Templates == nil {
-				c.params.Templates = make(map[string]string)
-			}
-			for k, v := range defaultTemplates {
-				c.params.Templates[k] = v
-			}
-			err = c.save()
+		if err != nil {
+			return c, fmt.Errorf("Error loading config file %s: %v", file, err)
 		}
 	}
 	return c, err
@@ -88,24 +63,11 @@ func (c *Config) load() error {
 	return nil
 }
 
-//GetTemplates return current configured templates
-func (c Config) GetTemplates() []string {
-	t := make([]string, len(c.params.Templates))
-	i := 0
-	for k := range c.params.Templates {
-		t[i] = k
-		i++
-	}
-	return t
+func (c *Config) GetCustomTemplate() (string, bool) {
+
+	return c.params.CustomTemplate, c.params.CustomTemplate != ""
 }
 
-//GetTemplate returns a template
-func (c Config) GetTemplate(template string) (string, bool) {
-	t, ok := c.params.Templates[template]
-	return t, ok
-}
-
-//GetTemplateOptions return current configured options for template
-func (c Config) GetTemplateOptions(template string) map[string]interface{} {
-	return c.params.Options[template]
+func (c *Config) GetOptions() (map[string]interface{}, bool) {
+	return c.params.Options, c.params.Options != nil
 }

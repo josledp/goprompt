@@ -30,6 +30,11 @@ AWS_SESSION_EXPIRATION information about the current assumed role.
   goprompt options. You can change it dinamically (so you can play with it
   until you find the right options for you in the console before setting it up)
 
+* There is also a configuration file at ~/.config/goprompt/goprompt.json when
+  you may specify your customTemplate, and the different options a plugin may
+  offer. Currently the only way to tune the plugin options is using this config
+  file.
+
 ## Plugins
 
 * aws: shows your current assumed role (red if expired, yellow if < 10minuts to
@@ -49,9 +54,9 @@ AWS_SESSION_EXPIRATION information about the current assumed role.
 * The code needs a couple of iterations more to be proud of
 
 ## Todo
-* Implement plugin options
+* Implement plugin options in the command line
 * git plugin:
   * implement another styles (oh-my-zsh for example)
 * Implement more plugins:
   * ruby? (RVM/rbenv/bundle ¿?)
-* Move prompt templates to a config file
+* Setup more predefined templates

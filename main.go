@@ -20,14 +20,13 @@ func main() {
 	var noColor bool
 	var template string
 	var customTemplate string
-	var t string
 
 	config, err := prompt.NewConfig(os.Getenv("HOME") + "/.config/goprompt/goprompt.json")
 	if err != nil {
 		log.Fatalf("unable to get config: %v", err)
 	}
 
-	currentTemplates := strings.Join(config.GetTemplates(), ",")
+	currentTemplates := strings.Join(prompt.GetDefaultTemplates(), ",")
 	flag.StringVar(&template, "template", "Evermeet", "template to use for the prompt ("+currentTemplates+")")
 	flag.StringVar(&customTemplate, "custom-template", "<(%python%) ><%aws%|><%user% ><%lastcommand% ><%path%>< %git%>$ ", "template to use for the prompt")
 	flag.BoolVar(&noColor, "no-color", false, "Disable color on prompt")
@@ -45,17 +44,25 @@ func main() {
 		os.Exit(1)
 	}
 
+	var t string
 	var options map[string]interface{}
+	options, _ = config.GetOptions()
+
 	if customTemplateSet {
 		t = customTemplate
-	} else {
+	} else if !templateSet {
+		t, _ = config.GetCustomTemplate()
+	}
+
+	if t == "" {
 		var ok bool
-		t, ok = config.GetTemplate(template)
+		t, ok = prompt.GetTemplate(template)
 		if !ok {
 			fmt.Fprintf(os.Stderr, "Template %s not found", template)
 		}
-		options = config.GetTemplateOptions(template)
-
+		if options == nil {
+			options, _ = prompt.GetTemplateOptions(template)
+		}
 	}
 	pr := prompt.New(options)
 	output := pr.Compile(t, !noColor)

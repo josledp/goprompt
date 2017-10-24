@@ -153,7 +153,32 @@ func (pr Prompt) Compile(template string, color bool) string {
 	return output
 }
 
+//GetDefaultTemplates returns the default templates defined by the prompt package
+func GetDefaultTemplates() []string {
+	templates := make([]string, 0)
+	for name := range defaultTemplates {
+		templates = append(templates, name)
+	}
+	return templates
+}
+
+//GetTemplateOptions returns the default options for a default template
+func GetTemplateOptions(template string) (map[string]interface{}, bool) {
+	o, ok := defaultTemplatesOptions[template]
+	return o, ok
+}
+
+//GetTemplate returns the a default template by its name
+func GetTemplate(template string) (string, bool) {
+	t, ok := defaultTemplates[template]
+	return t, ok
+}
+
 var availablePlugins []Plugin
+
+//Predefined templates and its options
+var defaultTemplates map[string]string
+var defaultTemplatesOptions map[string]map[string]interface{}
 
 func init() {
 	availablePlugins = []Plugin{
@@ -168,8 +193,19 @@ func init() {
 		&plugins.Golang{},
 	}
 
+	defaultTemplates = map[string]string{
+		"Evermeet": "<(%python%) ><%aws%|><%user%@><%hostname%> <%lastcommand% ><%path%>< %git%><%userchar%> ",
+		"Fedora":   "[ <(%python%) ><%aws%|><%user%@><%hostname%> <%lastcommand% ><%path%>< %git%> ]<%userchar%> ",
+	}
+	defaultTemplatesOptions = map[string]map[string]interface{}{
+		"Evermeet": map[string]interface{}{
+			"path.fullpath": float64(1),
+		},
+		"Fedora": map[string]interface{}{
+			"path.fullpath": float64(0),
+		},
+	}
 }
-
 func (pr Prompt) detectShell() string {
 	pid := os.Getppid()
 	cmdlineFile := fmt.Sprintf("/proc/%d/cmdline", pid)
