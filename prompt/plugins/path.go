@@ -32,10 +32,32 @@ func (p *Path) Load(pr Prompter) error {
 
 	if pr != nil {
 		if value, ok := pr.GetOption(p.Name() + ".fullpath"); ok {
-			if !value.(bool) {
-				tmp := strings.Split(p.pwd, "/")
-				p.pwd = tmp[len(tmp)-1]
+			if v, ok := value.(float64); ok {
+				switch v {
+				case 0:
+					tmp := strings.Split(p.pwd, "/")
+					p.pwd = tmp[len(tmp)-1]
+				case 2:
+					tmp := strings.Split(p.pwd, "/")
+					for i, d := range tmp {
+						if i == 0 {
+							p.pwd = d
+						} else if i < len(tmp)-1 {
+							p.pwd += "/" + string(d[0])
+						} else {
+							p.pwd += "/" + d
+						}
+					}
+				}
+			} else if v, ok := value.(bool); ok {
+				if !v {
+					tmp := strings.Split(p.pwd, "/")
+					p.pwd = tmp[len(tmp)-1]
+				}
+			} else {
+				return fmt.Errorf("Unable to parse path.fullpath option")
 			}
+
 		}
 	}
 

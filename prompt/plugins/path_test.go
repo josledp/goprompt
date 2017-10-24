@@ -44,9 +44,20 @@ func TestPath(t *testing.T) {
 					"PWD": "/tmp/test",
 				},
 			},
-			options:        map[string]interface{}{"path.fullpath": false},
+			options:        map[string]interface{}{"path.fullpath": float64(0)},
 			expectedPwd:    "test",
 			expectedPrompt: "\\[\\033[0m\\]\\[\\033[1;34m\\]test\\[\\033[0m\\]",
+		},
+		{
+			name: "test_fish_path",
+			env: []map[string]string{
+				{
+					"PWD": "/tmp/test",
+				},
+			},
+			options:        map[string]interface{}{"path.fullpath": float64(2)},
+			expectedPwd:    "/t/test",
+			expectedPrompt: "\\[\\033[0m\\]\\[\\033[1;34m\\]/t/test\\[\\033[0m\\]",
 		},
 	}
 

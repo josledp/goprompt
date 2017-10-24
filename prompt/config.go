@@ -41,10 +41,10 @@ func NewConfig(file string) (Config, error) {
 			Templates: defaultTemplates,
 			Options: map[string]map[string]interface{}{
 				"Evermeet": map[string]interface{}{
-					"path.fullpath": true,
+					"path.fullpath": 1,
 				},
 				"Fedora": map[string]interface{}{
-					"path.fullpath": false,
+					"path.fullpath": 0,
 				},
 			},
 		}
