@@ -3,6 +3,7 @@ package prompt
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -10,7 +11,6 @@ import (
 
 //Config is the struct to fetch the config
 type Config struct {
-	file   string
 	params parameters
 }
 
@@ -19,55 +19,80 @@ type parameters struct {
 	Options        map[string]interface{} `json:"options"`
 }
 
-//NewConfig loads and returns the config
-func NewConfig(file string) (Config, error) {
+//NewConfigFromFile loads the config from a file and returns the config
+func NewConfigFromFile(file string) (*Config, error) {
 	var err error
-	c := Config{file: file}
-	if _, osErr := os.Stat(c.file); os.IsNotExist(osErr) {
-		err = os.MkdirAll(path.Dir(c.file), 0755)
+	var c *Config
+	if _, osErr := os.Stat(file); os.IsNotExist(osErr) {
+		err = os.MkdirAll(path.Dir(file), 0755)
 		if err != nil {
-			return c, fmt.Errorf("unable to create config path %s: %v", path.Dir(c.file), err)
+			return nil, fmt.Errorf("unable to create config path %s: %v", path.Dir(file), err)
 		}
-		c.params = parameters{}
-		err = c.save()
+		c = &Config{params: parameters{}}
+		rw, err := os.Create(file)
+		if err != nil {
+			return nil, fmt.Errorf("unable to create initial configuration file: %v", err)
+		}
+		defer rw.Close()
+
+		err = c.save(rw)
+		if err != nil {
+			return nil, fmt.Errorf("unable to save initial configuration file: %v", err)
+		}
 	} else {
-		err = c.load()
+		rw, err := os.Open(file)
 		if err != nil {
-			return c, fmt.Errorf("Error loading config file %s: %v", file, err)
+			return nil, fmt.Errorf("error opening config file %s: %v", file, err)
 		}
+		defer rw.Close()
+		return NewConfig(rw)
 	}
-	return c, err
+	return c, nil
 }
 
-func (c Config) save() error {
+//NewConfig returns a new Config struct from a io.ReadWriteCloser
+func NewConfig(r io.Reader) (*Config, error) {
+	c := &Config{}
+	err := c.load(r)
+	if err != nil {
+		return c, fmt.Errorf("error loading config: %v", err)
+	}
+	return c, nil
+}
+func (c Config) save(w io.Writer) error {
 	data, err := json.Marshal(c.params)
 	if err != nil {
-		return fmt.Errorf("unable to marshal config %s: %v", c.file, err)
+		return fmt.Errorf("unable to marshal config: %v", err)
 	}
-	err = ioutil.WriteFile(c.file, data, 0644)
+	n, err := w.Write(data)
 	if err != nil {
-		return fmt.Errorf("unable to write config %s: %v", c.file, err)
+		return fmt.Errorf("unable to write config: %v", err)
+	}
+	if n != len(data) {
+		return fmt.Errorf("not all data could be saved: %v", err)
 	}
 	return nil
 }
 
-func (c *Config) load() error {
-	data, err := ioutil.ReadFile(c.file)
+func (c *Config) load(r io.Reader) error {
+	data, err := ioutil.ReadAll(r)
 	if err != nil {
-		return fmt.Errorf("unable to read config %s: %v", c.file, err)
+		return fmt.Errorf("unable to read config: %v", err)
 	}
 	err = json.Unmarshal(data, &c.params)
 	if err != nil {
-		return fmt.Errorf("unable to unmarshal config %s: %v", c.file, err)
+		return fmt.Errorf("unable to unmarshal config: %v", err)
 	}
 	return nil
 }
 
+//GetCustomTemplate returns the configured custom templatefile
 func (c *Config) GetCustomTemplate() (string, bool) {
 
 	return c.params.CustomTemplate, c.params.CustomTemplate != ""
 }
 
+//GetOptions return the configured options
 func (c *Config) GetOptions() (map[string]interface{}, bool) {
 	return c.params.Options, c.params.Options != nil
 }

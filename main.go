@@ -21,7 +21,7 @@ func main() {
 	var template string
 	var customTemplate string
 
-	config, err := prompt.NewConfig(os.Getenv("HOME") + "/.config/goprompt/goprompt.json")
+	config, err := prompt.NewConfigFromFile(os.Getenv("HOME") + "/.config/goprompt/goprompt.json")
 	if err != nil {
 		log.Fatalf("unable to get config: %v", err)
 	}
