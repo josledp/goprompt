@@ -1,4 +1,4 @@
-package plugins
+package plugin
 
 //Prompter is the interface which provides options/config to the plugin
 type Prompter interface {

@@ -1,4 +1,4 @@
-package plugins
+package plugin
 
 import (
 	"os"
@@ -7,7 +7,7 @@ import (
 	"github.com/josledp/termcolor"
 )
 
-func TestUser(t *testing.T) {
+func TestUserChar(t *testing.T) {
 
 	testCases := []struct {
 		user     string
@@ -15,25 +15,25 @@ func TestUser(t *testing.T) {
 	}{
 		{
 			user:     "testuser",
-			expected: "\\[\\033[0m\\]\\[\\033[1;32m\\]testuser\\[\\033[0m\\]",
+			expected: "$",
 		},
 		{
 			user:     "root",
-			expected: "",
+			expected: "#",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.user, func(t *testing.T) {
 			os.Setenv("USER", tc.user)
-			u := &User{}
-			u.Load(nil)
+			uc := &UserChar{}
+			uc.Load(nil)
 
-			if u.user != tc.user {
+			if uc.user != tc.user {
 				t.Error("Invalid user")
 			}
 
-			output, _ := u.Get(termcolor.EscapedFormat)
+			output, _ := uc.Get(termcolor.EscapedFormat)
 			if output != tc.expected {
 				t.Errorf("Expected %s\nGot      %s", tc.expected, output)
 			}

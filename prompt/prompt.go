@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/josledp/goprompt/prompt/plugins"
+	"github.com/josledp/goprompt/prompt/plugin"
 	"github.com/josledp/termcolor"
 )
 
@@ -22,7 +22,7 @@ type Prompt struct {
 //Plugin is the interface all the plugins MUST implement
 type Plugin interface {
 	Name() string
-	Load(pr plugins.Prompter) error
+	Load(pr plugin.Prompter) error
 	Get(format func(string, ...termcolor.Mode) string) (string, []termcolor.Mode)
 }
 
@@ -182,15 +182,15 @@ var defaultTemplatesOptions map[string]map[string]interface{}
 
 func init() {
 	availablePlugins = []Plugin{
-		&plugins.Aws{},
-		&plugins.Git{},
-		&plugins.LastCommand{},
-		&plugins.Path{},
-		&plugins.Python{},
-		&plugins.User{},
-		&plugins.Hostname{},
-		&plugins.UserChar{},
-		&plugins.Golang{},
+		&plugin.Aws{},
+		&plugin.Git{},
+		&plugin.LastCommand{},
+		&plugin.Path{},
+		&plugin.Python{},
+		&plugin.User{},
+		&plugin.Hostname{},
+		&plugin.UserChar{},
+		&plugin.Golang{},
 	}
 
 	defaultTemplates = map[string]string{
