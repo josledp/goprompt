@@ -147,35 +147,7 @@ func (g *Git) Load(pr Prompter) error {
 			defer remoteRef.Free()
 
 			g.hasUpstream = true
-			pwd, err := os.Getwd()
-			if err == nil {
-				key := fmt.Sprintf("git-%s-fetch", pwd)
-				last, ok := pr.GetCache(key)
-				var lastTime time.Time
-				if last != nil {
-					lastTime, err = time.Parse(time.RFC3339, last.(string))
-					if err != nil {
-						log.Printf("Error loading git last fetch time: %v", err)
-					}
-				}
-				if !ok || time.Since(lastTime) > 300*time.Second {
-					pa := syscall.ProcAttr{}
-					pa.Env = os.Environ()
-					pa.Dir = pwd
-					gitcommand, err := exec.LookPath("git")
-					if err != nil {
-						log.Printf("git command not found: %v", err)
-					} else {
-						_, err = syscall.ForkExec(gitcommand, []string{gitcommand, "fetch"}, &pa)
-						if err != nil {
-							//Silently fail?
-							log.Printf("Error fetching: %v", err)
-						} else {
-							pr.Cache(key, time.Now())
-						}
-					}
-				}
-			}
+			g.fetchIfNeeded(pr)
 
 			if !remoteRef.Target().Equal(localRef.Target()) {
 				g.commitsAhead, g.commitsBehind, err = repository.AheadBehind(localRef.Target(), remoteRef.Target())
@@ -237,4 +209,36 @@ func (g Git) Get(format func(string, ...termcolor.Mode) string) (string, []termc
 		}
 	}
 	return gitPromptInfo, []termcolor.Mode{termcolor.FgMagenta}
+}
+
+func (g *Git) fetchIfNeeded(pr Prompter) {
+	pwd, err := os.Getwd()
+	if err == nil {
+		key := fmt.Sprintf("git-%s-fetch", pwd)
+		last, ok := pr.GetCache(key)
+		var lastTime time.Time
+		if last != nil {
+			lastTime, err = time.Parse(time.RFC3339, last.(string))
+			if err != nil {
+				log.Printf("Error loading git last fetch time: %v", err)
+			}
+		}
+		if !ok || time.Since(lastTime) > 300*time.Second {
+			pa := syscall.ProcAttr{}
+			pa.Env = os.Environ()
+			pa.Dir = pwd
+			gitcommand, err := exec.LookPath("git")
+			if err != nil {
+				log.Printf("git command not found: %v", err)
+			} else {
+				_, err = syscall.ForkExec(gitcommand, []string{gitcommand, "fetch"}, &pa)
+				if err != nil {
+					//Silently fail?
+					log.Printf("Error fetching: %v", err)
+				} else {
+					pr.Cache(key, time.Now())
+				}
+			}
+		}
+	}
 }
