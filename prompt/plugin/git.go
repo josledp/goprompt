@@ -196,33 +196,6 @@ func aheadBehind(repository *git.Repository, local *object.Commit, remote *objec
 	return ahead, behind
 }
 
-/*
-
-			if entry.Status&git2go.StatusConflicted > 0 {
-				g.conflicted++
-				got = true
-			}
-
-		}
-
-
-		remoteRef, err := localBranch.Upstream()
-
-		if err == nil {
-			defer remoteRef.Free()
-
-
-			if !remoteRef.Target().Equal(localRef.Target()) {
-				g.commitsAhead, g.commitsBehind, err = repository.AheadBehind(localRef.Target(), remoteRef.Target())
-				if err != nil {
-					return fmt.Errorf("Error getting commitsAhead/Behing: %v", err)
-				}
-			}
-		}
-		})
-	}
-	return nil*/
-
 //Get returns the string to use in the prompt
 func (g Git) Get(format func(string, ...termcolor.Mode) string) (string, []termcolor.Mode) {
 	var gitPromptInfo string
