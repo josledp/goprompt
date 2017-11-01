@@ -139,6 +139,7 @@ func (g *Git) Load(pr Prompter) error {
 	localName := strings.Split(localRef.Name().String(), "/")
 	if len(localName) == 1 {
 		g.branch = ":" + localRef.Hash().String()[:7]
+		g.detached = true
 	} else {
 		g.branch = localName[len(localName)-1]
 	}
