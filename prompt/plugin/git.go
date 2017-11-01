@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -126,7 +127,24 @@ func (g *Git) Load(pr Prompter) error {
 			g.changed++
 		}
 	}
-	//TODO: missing conflict files!
+	mergeMsg, err := os.Open(gitPwd + "/.git/MERGE_MSG")
+	if err == nil {
+		defer mergeMsg.Close()
+		mmReader := bufio.NewReader(mergeMsg)
+		var line string
+		countLines := false
+		for err = nil; err == nil; line, err = mmReader.ReadString('\n') {
+			if countLines {
+				g.conflicted++
+				g.changed--
+				g.staged--
+			} else if strings.Contains(line, "Conflicts") {
+				countLines = true
+			}
+		}
+
+	}
+
 	if fstash, err := os.Open(gitPwd + "/.git/logs/refs/stash"); err == nil {
 		defer fstash.Close()
 		g.stashed, err = lineCounter(fstash)
