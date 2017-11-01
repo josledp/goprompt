@@ -152,12 +152,12 @@ func (g *Git) Load(pr Prompter) error {
 		g.hasUpstream = true
 		g.fetchIfNeeded(pr)
 		remoteRef, err := repository.Reference(plumbing.ReferenceName("refs/remotes/"+remote+"/"+g.branch), false)
-		if localRef != remoteRef && err == nil {
+		if localRef.Hash() != remoteRef.Hash() && err == nil {
 			localCo, err := repository.CommitObject(localRef.Hash())
 			if err != nil {
 				return fmt.Errorf("unable to get local commit from local reference: %v", err)
 			}
-			remoteCo, err := repository.CommitObject(localRef.Hash())
+			remoteCo, err := repository.CommitObject(remoteRef.Hash())
 			if err != nil {
 				return fmt.Errorf("unable to get local commit from remote reference: %v", err)
 			}
@@ -169,15 +169,14 @@ func (g *Git) Load(pr Prompter) error {
 }
 
 func fillMap(r *git.Repository, co *object.Commit, m map[string]struct{}) {
-	log.Print(co.Hash)
-	m[co.Hash] = struct{}{}
+	m[co.Hash.String()] = struct{}{}
 	for _, _p := range co.ParentHashes {
 		p, _ := r.CommitObject(_p)
 		fillMap(r, p, m)
 	}
 }
 func count(r *git.Repository, co *object.Commit, m map[string]struct{}) int {
-	if _, ok := m[co.Hash]; ok {
+	if _, ok := m[co.Hash.String()]; ok {
 		return 0
 	}
 	c := 1
@@ -190,9 +189,7 @@ func count(r *git.Repository, co *object.Commit, m map[string]struct{}) int {
 func aheadBehind(repository *git.Repository, local *object.Commit, remote *object.Commit) (ahead, behind int) {
 	localMap := make(map[string]struct{})
 	remoteMap := make(map[string]struct{})
-	log.Print("local")
 	fillMap(repository, local, localMap)
-	log.Print("remote")
 	fillMap(repository, remote, remoteMap)
 	ahead = count(repository, local, remoteMap)
 	behind = count(repository, remote, localMap)
