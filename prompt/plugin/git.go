@@ -107,10 +107,11 @@ func (g *Git) Load(pr Prompter) error {
 	if err != nil {
 		return fmt.Errorf("error getting worktree: %v", err)
 	}
-	st, err := wt.Status()
+	st, err := wt.Status() //This is the slow slow call (it takes up to 3 seconds in the kubernetes repo for example)
 	if err != nil {
 		return fmt.Errorf("error getting worktree status: %v", err)
 	}
+
 	for _, status := range st {
 		switch status.Staging {
 		case git.Unmodified:
@@ -184,6 +185,7 @@ func (g *Git) Load(pr Prompter) error {
 
 	}
 	return nil
+
 }
 
 func fillMap(r *git.Repository, co *object.Commit, m map[string]struct{}) {
