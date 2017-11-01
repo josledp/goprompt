@@ -12,9 +12,12 @@ import (
 	"syscall"
 	"time"
 
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
+
 	"github.com/josledp/termcolor"
 	"gopkg.in/src-d/go-billy.v3/osfs"
 	git "gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 )
 
@@ -148,12 +151,49 @@ func (g *Git) Load(pr Prompter) error {
 	if remote != "" {
 		g.hasUpstream = true
 		g.fetchIfNeeded(pr)
-		remoteRef, _ := repository.Reference("refs/remotes/origin/dev_remove_libgit2", false)
-		log.Print(remoteRef)
+		remoteRef, err := repository.Reference(plumbing.ReferenceName("refs/remotes/"+remote+"/"+g.branch), false)
+		if localRef != remoteRef && err == nil {
+			localCo, err := repository.CommitObject(localRef.Hash())
+			if err != nil {
+				return fmt.Errorf("unable to get local commit from local reference: %v", err)
+			}
+			remoteCo, err := repository.CommitObject(localRef.Hash())
+			if err != nil {
+				return fmt.Errorf("unable to get local commit from remote reference: %v", err)
+			}
+			g.commitsAhead, g.commitsBehind = aheadBehind(repository, localCo, remoteCo)
+		}
 
 	}
-	log.Print(remote)
 	return nil
+}
+
+func fillMap(r *git.Repository, co *object.Commit, m map[string]struct{}) {
+	m[co.String()] = struct{}{}
+	for _, _p := range co.ParentHashes {
+		p, _ := r.CommitObject(_p)
+		fillMap(r, p, m)
+	}
+}
+func count(r *git.Repository, co *object.Commit, m map[string]struct{}) int {
+	c := 0
+	for _, _p := range co.ParentHashes {
+		p, _ := r.CommitObject(_p)
+		if _, ok := m[p.String()]; !ok {
+			c += 1 + count(r, p, m)
+		}
+	}
+	return c
+}
+func aheadBehind(repository *git.Repository, local *object.Commit, remote *object.Commit) (ahead, behind int) {
+	localMap := make(map[string]struct{})
+	remoteMap := make(map[string]struct{})
+	fillMap(repository, local, localMap)
+	fillMap(repository, remote, remoteMap)
+
+	ahead = count(repository, local, remoteMap)
+	behind = count(repository, remote, localMap)
+	return ahead, behind
 }
 
 /*
