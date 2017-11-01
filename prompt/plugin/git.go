@@ -137,7 +137,11 @@ func (g *Git) Load(pr Prompter) error {
 		return nil
 	}
 	localName := strings.Split(localRef.Name().String(), "/")
-	g.branch = localName[len(localName)-1]
+	if len(localName) == 1 {
+		g.branch = ":" + localRef.Hash().String()[:7]
+	} else {
+		g.branch = localName[len(localName)-1]
+	}
 
 	return nil
 }
