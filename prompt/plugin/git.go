@@ -143,7 +143,16 @@ func (g *Git) Load(pr Prompter) error {
 	} else {
 		g.branch = localName[len(localName)-1]
 	}
+	c, err := repository.Config()
+	remote := c.Raw.Section("branch").Subsection(g.branch).Option("remote")
+	if remote != "" {
+		g.hasUpstream = true
+		g.fetchIfNeeded(pr)
+		remoteRef, _ := repository.Reference("refs/remotes/origin/dev_remove_libgit2", false)
+		log.Print(remoteRef)
 
+	}
+	log.Print(remote)
 	return nil
 }
 
@@ -162,8 +171,6 @@ func (g *Git) Load(pr Prompter) error {
 		if err == nil {
 			defer remoteRef.Free()
 
-			g.hasUpstream = true
-			g.fetchIfNeeded(pr)
 
 			if !remoteRef.Target().Equal(localRef.Target()) {
 				g.commitsAhead, g.commitsBehind, err = repository.AheadBehind(localRef.Target(), remoteRef.Target())
