@@ -124,7 +124,7 @@ func (g *Git) Load(pr Prompter) error {
 		}
 	}
 	//TODO: missing conflict files!
-	if fstash, err := os.Open(gitPwd + ".git/logs/refs/stash"); err == nil {
+	if fstash, err := os.Open(gitPwd + "/	.git/logs/refs/stash"); err == nil {
 		defer fstash.Close()
 		g.stashed, err = lineCounter(fstash)
 		if err != nil {
