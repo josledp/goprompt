@@ -1,25 +1,16 @@
 package plugin
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"os/exec"
 	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
-
 	"github.com/josledp/termcolor"
-	"gopkg.in/src-d/go-billy.v3/osfs"
-	git "gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/storage/filesystem"
+	git2go "gopkg.in/libgit2/git2go.v26"
 )
 
 const (
@@ -29,7 +20,7 @@ const (
 	sDot       = "●"
 	sCheck     = "✔"
 	sFlag      = "⚑"
-	sAsterisk  = "*"
+	sAsterisk  = "⭑"
 	sCross     = "✖"
 )
 
@@ -52,166 +43,154 @@ func (Git) Name() string {
 	return "git"
 }
 
-func findGitRepository() (string, error) {
-	pwd, err := os.Getwd()
-	if err != nil {
-		return "", fmt.Errorf("error determining current pwd: %v", err)
-	}
-	p := strings.Split(pwd, "/")
-	for i := range p {
-		path := strings.Join(p[:len(p)-i], "/")
-		if info, err := os.Stat(path + "/.git"); os.IsNotExist(err) {
-			continue
-		} else if err == nil && info.IsDir() {
-			return path, nil
-		}
-	}
-	return "", fmt.Errorf("unable to find .git directory")
-}
-
-func lineCounter(r io.Reader) (int, error) {
-	buf := make([]byte, 32*1024)
-	count := 0
-	lineSep := []byte{'\n'}
-
-	for {
-		c, err := r.Read(buf)
-		count += bytes.Count(buf[:c], lineSep)
-
-		switch {
-		case err == io.EOF:
-			return count, nil
-
-		case err != nil:
-			return count, err
-		}
-	}
-}
-
 //Load is the load function of the plugin
 func (g *Git) Load(pr Prompter) error {
-	gitPwd, err := findGitRepository()
-	if err != nil {
-		return nil //Unable to find valid git repo, so good so far
-	}
-	fs := osfs.New(gitPwd + "/.git")
-	storage, err := filesystem.NewStorage(fs)
-	if err != nil {
-		return fmt.Errorf("unable to get storer: %v", err)
-	}
-	repository, err := git.Open(storage, osfs.New(gitPwd))
-	if err != nil {
-		return fmt.Errorf("unable to open repository: %v", err)
-	}
-	wt, err := repository.Worktree()
-	if err != nil {
-		return fmt.Errorf("error getting worktree: %v", err)
-	}
-	st, err := wt.Status()
-	if err != nil {
-		return fmt.Errorf("error getting worktree status: %v", err)
-	}
-	for _, status := range st {
-		switch status.Staging {
-		case git.Unmodified:
-		case git.Untracked:
-		default:
-			g.staged++
-		}
-
-		switch status.Worktree {
-		case git.Unmodified:
-		case git.Untracked:
-			g.untracked++
-		default:
-			g.changed++
-		}
-	}
-	mergeMsg, err := os.Open(gitPwd + "/.git/MERGE_MSG")
+	gitpath, err := git2go.Discover(".", false, []string{"/"})
 	if err == nil {
-		defer mergeMsg.Close()
-		mmReader := bufio.NewReader(mergeMsg)
-		var line string
-		countLines := false
-		for err = nil; err == nil; line, err = mmReader.ReadString('\n') {
-			if countLines {
-				g.conflicted++
-				g.changed--
-				g.staged--
-			} else if strings.Contains(line, "Conflicts") {
-				countLines = true
-			}
-		}
-
-	}
-
-	if fstash, err := os.Open(gitPwd + "/.git/logs/refs/stash"); err == nil {
-		defer fstash.Close()
-		g.stashed, err = lineCounter(fstash)
+		repository, err := git2go.OpenRepository(gitpath)
 		if err != nil {
-			return fmt.Errorf("unable to count stashes:%v", err)
+			return fmt.Errorf("Error opening repository at %s: %v", gitpath, err)
 		}
-	}
-	localRef, err := repository.Head()
-	if err != nil {
-		g.branch = "No_Commits"
-		return nil
-	}
-	localName := strings.Split(localRef.Name().String(), "/")
-	if len(localName) == 1 {
-		g.branch = ":" + localRef.Hash().String()[:7]
-		g.detached = true
-	} else {
-		g.branch = localName[len(localName)-1]
-	}
-	c, err := repository.Config()
-	remote := c.Raw.Section("branch").Subsection(g.branch).Option("remote")
-	if remote != "" {
-		g.hasUpstream = true
-		g.fetchIfNeeded(pr)
-		remoteRef, err := repository.Reference(plumbing.ReferenceName("refs/remotes/"+remote+"/"+g.branch), false)
-		if localRef.Hash() != remoteRef.Hash() && err == nil {
-			localCo, err := repository.CommitObject(localRef.Hash())
-			if err != nil {
-				return fmt.Errorf("unable to get local commit from local reference: %v", err)
+		defer repository.Free()
+
+		//Get current tracked & untracked files status
+		statusOpts := git2go.StatusOptions{
+			Flags: git2go.StatusOptIncludeUntracked | git2go.StatusOptRenamesHeadToIndex,
+		}
+		repostate, err := repository.StatusList(&statusOpts)
+		if err != nil {
+			return fmt.Errorf("Error getting repository status at %s: %v", gitpath, err)
+		}
+		defer repostate.Free()
+		n, err := repostate.EntryCount()
+		for i := 0; i < n; i++ {
+			entry, _ := repostate.ByIndex(i)
+			got := false
+			if entry.Status&git2go.StatusCurrent > 0 {
+				got = true
 			}
-			remoteCo, err := repository.CommitObject(remoteRef.Hash())
-			if err != nil {
-				return fmt.Errorf("unable to get local commit from remote reference: %v", err)
+			if entry.Status&git2go.StatusIndexNew > 0 {
+				g.staged++
+				got = true
 			}
-			g.commitsAhead, g.commitsBehind = aheadBehind(repository, localCo, remoteCo)
+			if entry.Status&git2go.StatusIndexModified > 0 {
+				g.staged++
+				got = true
+			}
+			if entry.Status&git2go.StatusIndexDeleted > 0 {
+				g.staged++
+				got = true
+			}
+			if entry.Status&git2go.StatusIndexRenamed > 0 {
+				g.staged++
+				got = true
+			}
+			if entry.Status&git2go.StatusIndexTypeChange > 0 {
+				g.staged++
+				got = true
+			}
+			if entry.Status&git2go.StatusWtNew > 0 {
+				g.untracked++
+				got = true
+			}
+			if entry.Status&git2go.StatusWtModified > 0 {
+				g.changed++
+				got = true
+			}
+			if entry.Status&git2go.StatusWtDeleted > 0 {
+				g.changed++
+				got = true
+			}
+			if entry.Status&git2go.StatusWtTypeChange > 0 {
+				g.changed++
+				got = true
+			}
+			if entry.Status&git2go.StatusWtRenamed > 0 {
+				g.changed++
+				got = true
+			}
+			if entry.Status&git2go.StatusIgnored > 0 {
+				got = true
+			}
+			if entry.Status&git2go.StatusConflicted > 0 {
+				g.conflicted++
+				got = true
+			}
+			if !got {
+				log.Println("Git plugin. Unknown: ", entry.Status)
+			}
+		}
+		//Get current branch name
+		localRef, err := repository.Head()
+		if err != nil {
+			//Probably there are no commits yet. How to know the current branch??
+			g.branch = "No_Commits"
+			return nil
+		}
+		defer localRef.Free()
+
+		localBranch := localRef.Branch()
+		if err != nil {
+			return fmt.Errorf("Error getting local branch: %v", err)
 		}
 
+		if isHead, _ := localBranch.IsHead(); isHead {
+			g.branch = localRef.Shorthand()
+		} else {
+			g.branch = ":" + localRef.Target().String()[:7]
+			g.detached = true
+		}
+
+		remoteRef, err := localBranch.Upstream()
+
+		if err == nil {
+			defer remoteRef.Free()
+
+			g.hasUpstream = true
+			pwd, err := os.Getwd()
+			if err == nil {
+				key := fmt.Sprintf("git-%s-fetch", pwd)
+				last, ok := pr.GetCache(key)
+				var lastTime time.Time
+				if last != nil {
+					lastTime, err = time.Parse(time.RFC3339, last.(string))
+					if err != nil {
+						log.Printf("Error loading git last fetch time: %v", err)
+					}
+				}
+				if !ok || time.Since(lastTime) > 300*time.Second {
+					pa := syscall.ProcAttr{}
+					pa.Env = os.Environ()
+					pa.Dir = pwd
+					gitcommand, err := exec.LookPath("git")
+					if err != nil {
+						log.Printf("git command not found: %v", err)
+					} else {
+						_, err = syscall.ForkExec(gitcommand, []string{gitcommand, "fetch"}, &pa)
+						if err != nil {
+							//Silently fail?
+							log.Printf("Error fetching: %v", err)
+						} else {
+							pr.Cache(key, time.Now())
+						}
+					}
+				}
+			}
+
+			if !remoteRef.Target().Equal(localRef.Target()) {
+				g.commitsAhead, g.commitsBehind, err = repository.AheadBehind(localRef.Target(), remoteRef.Target())
+				if err != nil {
+					return fmt.Errorf("Error getting commitsAhead/Behing: %v", err)
+				}
+			}
+		}
+		// only works if libgit >= 0.25
+		repository.Stashes.Foreach(func(i int, m string, o *git2go.Oid) error {
+			g.stashed = i + 1
+			return nil
+		})
 	}
 	return nil
-}
-
-func fillMap(r *git.Repository, co *object.Commit, m map[string]struct{}) {
-	m[co.Hash.String()] = struct{}{}
-	for _, _p := range co.ParentHashes {
-		p, _ := r.CommitObject(_p)
-		fillMap(r, p, m)
-	}
-}
-func count(r *git.Repository, co *object.Commit, m map[string]struct{}) int {
-	if _, ok := m[co.Hash.String()]; ok {
-		return 0
-	}
-	c := 1
-	for _, _p := range co.ParentHashes {
-		p, _ := r.CommitObject(_p)
-		c += count(r, p, m)
-	}
-	return c
-}
-func aheadBehind(repository *git.Repository, local *object.Commit, remote *object.Commit) (ahead, behind int) {
-	localMap := make(map[string]struct{})
-	remoteMap := make(map[string]struct{})
-	fillMap(repository, local, localMap)
-	fillMap(repository, remote, remoteMap)
-	ahead = count(repository, local, remoteMap)
-	behind = count(repository, remote, localMap)
-	return ahead, behind
 }
 
 //Get returns the string to use in the prompt
@@ -258,36 +237,4 @@ func (g Git) Get(format func(string, ...termcolor.Mode) string) (string, []termc
 		}
 	}
 	return gitPromptInfo, []termcolor.Mode{termcolor.FgMagenta}
-}
-
-func (g *Git) fetchIfNeeded(pr Prompter) {
-	pwd, err := os.Getwd()
-	if err == nil {
-		key := fmt.Sprintf("git-%s-fetch", pwd)
-		last, ok := pr.GetCache(key)
-		var lastTime time.Time
-		if last != nil {
-			lastTime, err = time.Parse(time.RFC3339, last.(string))
-			if err != nil {
-				log.Printf("Error loading git last fetch time: %v", err)
-			}
-		}
-		if !ok || time.Since(lastTime) > 300*time.Second {
-			pa := syscall.ProcAttr{}
-			pa.Env = os.Environ()
-			pa.Dir = pwd
-			gitcommand, err := exec.LookPath("git")
-			if err != nil {
-				log.Printf("git command not found: %v", err)
-			} else {
-				_, err = syscall.ForkExec(gitcommand, []string{gitcommand, "fetch"}, &pa)
-				if err != nil {
-					//Silently fail?
-					log.Printf("Error fetching: %v", err)
-				} else {
-					pr.Cache(key, time.Now())
-				}
-			}
-		}
-	}
 }
