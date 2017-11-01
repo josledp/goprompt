@@ -25,7 +25,7 @@ const (
 	sDot       = "●"
 	sCheck     = "✔"
 	sFlag      = "⚑"
-	sAsterisk  = "⭑"
+	sAsterisk  = "*"
 	sCross     = "✖"
 )
 
