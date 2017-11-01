@@ -169,28 +169,31 @@ func (g *Git) Load(pr Prompter) error {
 }
 
 func fillMap(r *git.Repository, co *object.Commit, m map[string]struct{}) {
-	m[co.String()] = struct{}{}
+	log.Print(co.Hash)
+	m[co.Hash] = struct{}{}
 	for _, _p := range co.ParentHashes {
 		p, _ := r.CommitObject(_p)
 		fillMap(r, p, m)
 	}
 }
 func count(r *git.Repository, co *object.Commit, m map[string]struct{}) int {
-	c := 0
+	if _, ok := m[co.Hash]; ok {
+		return 0
+	}
+	c := 1
 	for _, _p := range co.ParentHashes {
 		p, _ := r.CommitObject(_p)
-		if _, ok := m[p.String()]; !ok {
-			c += 1 + count(r, p, m)
-		}
+		c += count(r, p, m)
 	}
 	return c
 }
 func aheadBehind(repository *git.Repository, local *object.Commit, remote *object.Commit) (ahead, behind int) {
 	localMap := make(map[string]struct{})
 	remoteMap := make(map[string]struct{})
+	log.Print("local")
 	fillMap(repository, local, localMap)
+	log.Print("remote")
 	fillMap(repository, remote, remoteMap)
-
 	ahead = count(repository, local, remoteMap)
 	behind = count(repository, remote, localMap)
 	return ahead, behind
