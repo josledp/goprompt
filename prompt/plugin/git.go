@@ -155,26 +155,7 @@ func (g *Git) Load(pr Prompter) error {
 			}
 
 		}
-		//Get current branch name
-		localRef, err := repository.Head()
-		if err != nil {
-			//Probably there are no commits yet. How to know the current branch??
-			g.branch = "No_Commits"
-			return nil
-		}
-		defer localRef.Free()
 
-		localBranch := localRef.Branch()
-		if err != nil {
-			return fmt.Errorf("Error getting local branch: %v", err)
-		}
-
-		if isHead, _ := localBranch.IsHead(); isHead {
-			g.branch = localRef.Shorthand()
-		} else {
-			g.branch = ":" + localRef.Target().String()[:7]
-			g.detached = true
-		}
 
 		remoteRef, err := localBranch.Upstream()
 
