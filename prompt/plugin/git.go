@@ -189,6 +189,9 @@ func (g *Git) Load(pr Prompter) error {
 }
 
 func fillMap(r *git.Repository, co *object.Commit, m map[string]struct{}) {
+	if _, ok := m[co.Hash.String()]; ok {
+		return
+	}
 	m[co.Hash.String()] = struct{}{}
 	for _, _p := range co.ParentHashes {
 		p, _ := r.CommitObject(_p)
