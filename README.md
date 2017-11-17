@@ -1,6 +1,6 @@
 # goprompt
 
-A plugable prompt generator writen in golang. It is heavily inspired on
+A plugable prompt generator written in golang. It is heavily inspired on
 [https://github.com/magicmonty/bash-git-prompt](bash-git-prompt), but it adds
 information about Python environment, AWS*, golang... And you can add your
 own plugins!
