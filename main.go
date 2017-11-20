@@ -5,21 +5,31 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime/pprof"
 	"strings"
 
 	"github.com/josledp/goprompt/prompt"
-
-	"github.com/josledp/termcolor"
 )
 
 var logger *log.Logger
 
-type formatFunc func(string, ...termcolor.Mode) string
+//type formatFunc func(string, ...termcolor.Mode) string
+
+func enableCpuProf() func() {
+
+	f, err := os.Create("/tmp/cpu.prof")
+	if err != nil {
+		log.Fatal(err)
+	}
+	pprof.StartCPUProfile(f)
+	return pprof.StopCPUProfile
+}
 
 func main() {
 	var noColor bool
 	var template string
 	var customTemplate string
+	defer enableCpuProf()()
 
 	config, err := prompt.NewConfigFromFile(os.Getenv("HOME") + "/.config/goprompt/goprompt.json")
 	if err != nil {
