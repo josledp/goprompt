@@ -5,12 +5,25 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime/pprof"
 	"strings"
 
 	"github.com/josledp/goprompt/prompt"
 )
 
 var logger *log.Logger
+
+//enableCPUProf call me this way if you want CPU Profiling:
+// defer enableCPUProf()()
+func enableCPUProf() func() {
+
+	f, err := os.Create("/tmp/cpu.prof")
+	if err != nil {
+		log.Fatal(err)
+	}
+	pprof.StartCPUProfile(f)
+	return pprof.StopCPUProfile
+}
 
 func main() {
 	var noColor bool
