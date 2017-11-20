@@ -8,13 +8,9 @@ import (
 	"strings"
 
 	"github.com/josledp/goprompt/prompt"
-
-	"github.com/josledp/termcolor"
 )
 
 var logger *log.Logger
-
-type formatFunc func(string, ...termcolor.Mode) string
 
 func main() {
 	var noColor bool
