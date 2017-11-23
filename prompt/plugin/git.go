@@ -1,7 +1,9 @@
 package plugin
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -184,11 +186,13 @@ func (g *Git) Load(pr Prompter) error {
 				}
 			}
 		}
-		// only works if libgit >= 0.25
-		repository.Stashes.Foreach(func(i int, m string, o *git2go.Oid) error {
-			g.stashed = i + 1
-			return nil
-		})
+		if fstash, err := os.Open(gitpath + "/logs/refs/stash"); err == nil {
+			defer fstash.Close()
+			g.stashed, err = lineCounter(fstash)
+			if err != nil {
+				return fmt.Errorf("unable to count stashes:%v", err)
+			}
+		}
 	}
 	return nil
 }
@@ -237,4 +241,23 @@ func (g Git) Get(format func(string, ...termcolor.Mode) string) (string, []termc
 		}
 	}
 	return gitPromptInfo, []termcolor.Mode{termcolor.FgMagenta}
+}
+
+func lineCounter(r io.Reader) (int, error) {
+	buf := make([]byte, 32*1024)
+	count := 0
+	lineSep := []byte{'\n'}
+
+	for {
+		c, err := r.Read(buf)
+		count += bytes.Count(buf[:c], lineSep)
+
+		switch {
+		case err == io.EOF:
+			return count, nil
+
+		case err != nil:
+			return count, err
+		}
+	}
 }

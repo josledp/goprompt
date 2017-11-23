@@ -11,9 +11,9 @@ AWS_SESSION_EXPIRATION information about the current assumed role.
 ## Usage
 
 * You need a valid go installation and $GOPATH/bin on your path
-* Git plugins needs libgit2 >= 0.25. if its not 0.26 you have to change the git2go
- library import on plugins/git.go (if you want to use 0.24 you have to comment
- out the stashes part on the Load function)
+* Git plugin needs git2go (which is has the go bindings for libgit2).
+  Currently using git2go.v26 (bindings agains libgit2 0.26) if you have another
+  version you will have to change it to be able to build goprompt.
 * go get github.com/josledp/goprompt
 * go install github.com/josledp/goprompt
 * For bash/zsh:
