@@ -18,6 +18,12 @@ func (Hostname) Name() string {
 	return "hostname"
 }
 
+//Help returns help information about this plugin
+func (Hostname) Help() (description string, options map[string]string) {
+	description = "This plugins shows the current hostname (red if you are root, green otherwise)"
+	return
+}
+
 //Load is the load function of the plugin
 func (h *Hostname) Load(Prompter) error {
 	var err error

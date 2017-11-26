@@ -17,6 +17,12 @@ func (LastCommand) Name() string {
 	return "lastcommand"
 }
 
+//Help returns help information about this plugin
+func (LastCommand) Help() (description string, options map[string]string) {
+	description = "This plugins show the last command return code"
+	return
+}
+
 //Load is the load function of the plugin
 func (lc *LastCommand) Load(Prompter) error {
 

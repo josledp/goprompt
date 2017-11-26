@@ -16,6 +16,12 @@ func (Golang) Name() string {
 	return "golang"
 }
 
+//Help returns help information about this plugin
+func (Golang) Help() (description string, options map[string]string) {
+	description = "This plugins show current golang version"
+	return
+}
+
 //Load is the load function of the plugin
 func (g *Golang) Load(Prompter) error {
 	g.version = runtime.Version()

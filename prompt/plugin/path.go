@@ -18,6 +18,15 @@ func (Path) Name() string {
 	return "path"
 }
 
+//Help returns help information about this plugin
+func (Path) Help() (description string, options map[string]string) {
+	description = "This plugins show the current path"
+	options = map[string]string{
+		"path.fullpath": "if 0 shows just the current dir, 1 for standard full path, 2 for fish path",
+	}
+	return
+}
+
 //Load is the load function of the plugin
 func (p *Path) Load(pr Prompter) error {
 	p.pwd = os.Getenv("PWD")

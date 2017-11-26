@@ -18,6 +18,12 @@ func (User) Name() string {
 	return "user"
 }
 
+//Help returns help information about this plugin
+func (User) Help() (description string, options map[string]string) {
+	description = "This plugins show the current user if its not root"
+	return
+}
+
 //Load is the load function of the plugin
 func (u *User) Load(Prompter) error {
 	u.user = os.Getenv("USER")

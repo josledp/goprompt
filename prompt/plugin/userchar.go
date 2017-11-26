@@ -17,6 +17,12 @@ func (UserChar) Name() string {
 	return "userchar"
 }
 
+//Help returns help information about this plugin
+func (UserChar) Help() (description string, options map[string]string) {
+	description = "This plugins show the typical final char for the prompt (# is the user is root, $ otherwise)"
+	return
+}
+
 //Load is the load function of the plugin
 func (uc *UserChar) Load(Prompter) error {
 	uc.user = os.Getenv("USER")

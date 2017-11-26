@@ -20,6 +20,12 @@ func (Aws) Name() string {
 	return "aws"
 }
 
+//Help returns help information about this plugin
+func (Aws) Help() (description string, options map[string]string) {
+	description = "This plugins show aws information(it needs AWS_ROLE + AWS_SESSION_EXPIRE non standard environment variables"
+	return
+}
+
 //Load is the load function of the plugin
 func (a *Aws) Load(Prompter) error {
 	role := os.Getenv("AWS_ROLE")

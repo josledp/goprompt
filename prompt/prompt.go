@@ -22,6 +22,7 @@ type Prompt struct {
 //Plugin is the interface all the plugins MUST implement
 type Plugin interface {
 	Name() string
+	Help() (description string, options map[string]string)
 	Load(pr plugin.Prompter) error
 	Get(format func(string, ...termcolor.Mode) string) (string, []termcolor.Mode)
 }

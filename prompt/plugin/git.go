@@ -45,6 +45,12 @@ func (Git) Name() string {
 	return "git"
 }
 
+//Help returns help information about this plugin
+func (Git) Help() (description string, options map[string]string) {
+	description = "This plugins show git information in the current git repo"
+	return
+}
+
 //Load is the load function of the plugin
 func (g *Git) Load(pr Prompter) error {
 	gitpath, err := git2go.Discover(".", false, []string{"/"})

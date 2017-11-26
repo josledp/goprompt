@@ -18,6 +18,12 @@ func (Python) Name() string {
 	return "python"
 }
 
+//Help returns help information about this plugin
+func (Python) Help() (description string, options map[string]string) {
+	description = "This plugins show the current python virtual environment"
+	return
+}
+
 //Load is the load function of the plugin
 func (p *Python) Load(Prompter) error {
 	virtualEnv, ve := os.LookupEnv("VIRTUAL_ENV")
