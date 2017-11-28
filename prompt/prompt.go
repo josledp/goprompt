@@ -176,8 +176,6 @@ func GetTemplate(template string) (string, bool) {
 	return t, ok
 }
 
-var availablePlugins []Plugin
-
 //ShowHelpPlugin writes on w the plugin help
 func ShowHelpPlugin(w io.Writer) {
 	fmt.Fprintf(w, "Plugin help\n")
@@ -217,6 +215,8 @@ plugin returns nothing, this template will just print "WeAreAt"`)
 //Predefined templates and its options
 var defaultTemplates map[string]string
 var defaultTemplatesOptions map[string]map[string]interface{}
+
+var availablePlugins []Plugin
 
 func init() {
 	availablePlugins = []Plugin{
