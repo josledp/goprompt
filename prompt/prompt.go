@@ -2,6 +2,7 @@ package prompt
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -71,7 +72,7 @@ func (pr Prompt) Compile(template string, color bool) string {
 
 	if color {
 
-		shell := pr.detectShell()
+		shell := detectShell()
 		switch shell {
 		case "bash":
 			format = termcolor.EscapedFormat
@@ -177,6 +178,42 @@ func GetTemplate(template string) (string, bool) {
 
 var availablePlugins []Plugin
 
+//ShowHelpPlugin writes on w the plugin help
+func ShowHelpPlugin(w io.Writer) {
+	fmt.Fprintf(w, "Plugin help\n")
+	fmt.Fprintf(w, "===============\n")
+	for _, p := range availablePlugins {
+		name := p.Name()
+		desc, opt := p.Help()
+		fmt.Fprintf(w, "Plugin: %s\n", name)
+		fmt.Fprintf(w, "Description: %s\n", desc)
+		if len(opt) > 0 {
+			fmt.Fprintf(w, "Options:\n")
+			for o, od := range opt {
+				fmt.Fprintf(w, "  %s: %s\n", o, od)
+			}
+		}
+		fmt.Fprintf(w, "\n")
+	}
+}
+
+//ShowHelpTemplate writes on w the templating help
+func ShowHelpTemplate(w io.Writer) {
+	fmt.Fprintf(w, "Templating help\n")
+	fmt.Fprintf(w, "===============\n")
+	fmt.Fprintln(w,
+		`Anything not between <> will be printed always as is. When goprompt finds <> its content is evaluated.
+Inside <> must be a call to some plugin, setting its name inside %%. If this plugin returns some text,
+any other content that was inside <> will be printed, otherwise nothing will be printed.
+
+
+Example:
+  "WeAreAt<---%hostname%--->"
+
+If the hostname plugin returns "myhostname" this template will print "WeAreAt---myhostname---", if the
+plugin returns nothing, this template will just print "WeAreAt"`)
+}
+
 //Predefined templates and its options
 var defaultTemplates map[string]string
 var defaultTemplatesOptions map[string]map[string]interface{}
@@ -207,7 +244,8 @@ func init() {
 		},
 	}
 }
-func (pr Prompt) detectShell() string {
+
+func detectShell() string {
 	pid := os.Getppid()
 	cmdlineFile := fmt.Sprintf("/proc/%d/cmdline", pid)
 	cmdline, err := ioutil.ReadFile(cmdlineFile)
