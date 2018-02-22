@@ -33,7 +33,9 @@ func (a *Aws) Load(Prompter) error {
 		tmp := strings.Split(role, ":")
 		role = tmp[0]
 		tmp = strings.Split(tmp[1], "-")
-		role += ":" + tmp[2]
+		if len(tmp) > 2 {
+			role += ":" + tmp[2]
+		}
 	}
 	a.role = role
 	iExpire, _ := strconv.ParseInt(os.Getenv("AWS_SESSION_EXPIRE"), 10, 0)
