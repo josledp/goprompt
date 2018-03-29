@@ -11,13 +11,14 @@ AWS_SESSION_EXPIRATION information about the current assumed role.
 ## Usage
 
 * You need a valid go installation and $GOPATH/bin on your path
-* Git plugin needs git2go (which is has the go bindings for libgit2).
+* libgit2 version 0.26 (Git plugin needs git2go, which is has the go bindings for libgit2).
   Currently using git2go.v26 (bindings agains libgit2 0.26) if you have another
-  version you will have to change it to be able to build goprompt.
+  version you will have to change the import to be able to build goprompt.
+  * (on MAC you can install libgit2 with brew. you will need pkg-config if its not already installed)
 * go get github.com/josledp/goprompt
 * go install github.com/josledp/goprompt
 * For bash/zsh:
-  * link goprompt.(bash|zsh) to your home (or any other directory you may want)
+  * link goprompt.(bash|zsh) (on the repository root) to your home (or any other directory you may want)
   * add to your .bashrc/.zshrc:
     source ~/goprompt.(bash|zsh) #Or the path you linked the file on
 * For Fish:
@@ -34,7 +35,8 @@ AWS_SESSION_EXPIRATION information about the current assumed role.
   you may specify your customTemplate, and the different options a plugin may
   offer. Currently the only way to tune the plugin options is using this config
   file.
-
+  Example:
+    ```{"options":{"path.fullpath":2}}```
 ## Plugins
 
 * aws: shows your current assumed role (red if expired, yellow if < 10minuts to
