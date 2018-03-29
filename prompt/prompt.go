@@ -250,7 +250,10 @@ func detectShell() string {
 	cmdlineFile := fmt.Sprintf("/proc/%d/cmdline", pid)
 	cmdline, err := ioutil.ReadFile(cmdlineFile)
 	if err != nil {
-		return "unknown"
+		cmdline = []byte(os.Getenv("SHELL"))
+		if len(cmdline) <= 2 {
+			return "unknown"
+		}
 	}
 
 	shells := []string{"bash", "zsh", "fish"}
