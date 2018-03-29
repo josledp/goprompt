@@ -3,6 +3,7 @@ package plugin
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/josledp/termcolor"
 )
@@ -34,6 +35,7 @@ func (h *Hostname) Load(Prompter) error {
 		return fmt.Errorf("Unable to get Hostname: %v", err)
 	}
 
+	h.hostname = strings.Split(h.hostname, ".")[0]
 	return nil
 }
 
