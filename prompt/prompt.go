@@ -98,7 +98,7 @@ func (pr Prompt) Compile(template string, color bool) string {
 
 	//Regular expresions for matching on template
 	reChunk, _ := regexp.Compile("<[^<>]*>")
-	rePlugin, _ := regexp.Compile("%[a-z]*%")
+	rePlugin, _ := regexp.Compile("%[a-z0-9]*%")
 	chunks := reChunk.FindAllString(template, -1)
 
 	//Channel for plugins to write (parallel plugin processing)
@@ -229,6 +229,7 @@ func init() {
 		&plugin.Hostname{},
 		&plugin.UserChar{},
 		&plugin.Golang{},
+		&plugin.Kubernetes{},
 	}
 
 	defaultTemplates = map[string]string{
