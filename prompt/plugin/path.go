@@ -8,6 +8,8 @@ import (
 	"github.com/josledp/termcolor"
 )
 
+const maxPathLength = 20
+
 //Path is the plugin struct
 type Path struct {
 	pwd string
@@ -22,7 +24,7 @@ func (Path) Name() string {
 func (Path) Help() (description string, options map[string]string) {
 	description = "This plugins show the current path"
 	options = map[string]string{
-		"path.fullpath": "if 0 shows just the current dir, 1 for standard full path, 2 for fish path",
+		"path.fullpath": "if 0 shows just the current dir, 1 for standard full path, 2 for fish path, 3 for variable path (it tries not to shrink it until it is >20)",
 	}
 	return
 }
@@ -55,6 +57,29 @@ func (p *Path) Load(pr Prompter) error {
 							p.pwd += "/" + string(d[0])
 						} else {
 							p.pwd += "/" + d
+						}
+					}
+				case 3:
+					length := len(p.pwd)
+					tmp := strings.Split(p.pwd, "/")
+					var i int
+					p.pwd = ""
+					for i = 0; i < len(tmp) && length > maxPathLength; i++ {
+						d := tmp[i]
+						if i == 0 {
+							p.pwd = d
+						} else if i < len(tmp)-1 {
+							p.pwd += "/" + string(d[0])
+							length -= len(d) - 1
+						} else {
+							p.pwd += "/" + d
+						}
+					}
+					for j := i; j < len(tmp); j++ {
+						if j == 0 {
+							p.pwd = tmp[0]
+						} else {
+							p.pwd += "/" + tmp[j]
 						}
 					}
 				}
