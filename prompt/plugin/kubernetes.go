@@ -89,7 +89,7 @@ func (k *Kubernetes) Load(Prompter) error {
 //Get returns the string to use in the prompt
 func (k Kubernetes) Get(format func(string, ...termcolor.Mode) string) (string, []termcolor.Mode) {
 	if k.context != "" {
-		return format(fmt.Sprintf("%s(%s)", k.context, k.namespace), termcolor.Faint), []termcolor.Mode{termcolor.Faint}
+		return format(fmt.Sprintf("%s(%s)", k.context, k.namespace), termcolor.FgHiBlue), []termcolor.Mode{termcolor.FgHiBlue}
 	}
 	return "", nil
 }
