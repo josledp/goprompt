@@ -42,7 +42,7 @@ func (Kubernetes) Name() string {
 
 //Help returns help information about this plugin
 func (Kubernetes) Help() (description string, options map[string]string) {
-	description = "This plugins show the current context for kubernetes"
+	description = "This plugins show the current context for kubernetes with its namespace"
 	return
 }
 

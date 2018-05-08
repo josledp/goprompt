@@ -230,11 +230,13 @@ func init() {
 		&plugin.UserChar{},
 		&plugin.Golang{},
 		&plugin.Kubernetes{},
+		&plugin.ExitUserChar{},
 	}
 
 	defaultTemplates = map[string]string{
 		"Evermeet": "<(%python%) ><%aws%|><%user%@><%hostname%> <%lastcommand% ><%path%>< %git%><%userchar%> ",
 		"Fedora":   "[ <(%python%) ><%aws%|><%user%@><%hostname%> <%lastcommand% ><%path%>< %git%> ]<%userchar%> ",
+		"Prefered": "<{%k8s%}><(%python%) ><%aws%|><%path%>< %git%><%exituserchar%> ",
 	}
 	defaultTemplatesOptions = map[string]map[string]interface{}{
 		"Evermeet": map[string]interface{}{
@@ -242,6 +244,9 @@ func init() {
 		},
 		"Fedora": map[string]interface{}{
 			"path.fullpath": float64(0),
+		},
+		"Prefered": map[string]interface{}{
+			"path.fullpath": float64(3),
 		},
 	}
 }

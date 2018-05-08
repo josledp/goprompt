@@ -36,8 +36,12 @@ func main() {
 		log.Fatalf("unable to get config: %v", err)
 	}
 
+	defaultTemplate, ok := config.GetTemplate()
+	if !ok {
+		defaultTemplate = "Evermeet"
+	}
 	currentTemplates := strings.Join(prompt.GetDefaultTemplates(), ",")
-	flag.StringVar(&template, "template", "Evermeet", "template to use for the prompt ("+currentTemplates+")")
+	flag.StringVar(&template, "template", defaultTemplate, "template to use for the prompt ("+currentTemplates+")")
 	flag.StringVar(&customTemplate, "custom-template", "<(%python%) ><%aws%|><%user% ><%lastcommand% ><%path%>< %git%>$ ", "template to use for the prompt")
 	flag.BoolVar(&noColor, "no-color", false, "Disable color on prompt")
 	flag.BoolVar(&helpPlugin, "help-plugin", false, "Shows plugins help")
@@ -76,7 +80,7 @@ func main() {
 		t, _ = config.GetCustomTemplate()
 	}
 
-	//If we have not a template yet, get it (from the template parameter)
+	//If we have not a template yet, get it (from the template parameter, or from the template option in the config)
 	if t == "" {
 		var ok bool
 		t, ok = prompt.GetTemplate(template)

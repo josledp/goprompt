@@ -2,7 +2,7 @@
 
 A plugable prompt generator written in golang. It is heavily inspired on
 [https://github.com/magicmonty/bash-git-prompt](bash-git-prompt), but it adds
-information about Python environment, AWS*, golang... And you can add your
+information about Python environment, AWS*, golang, k8s... And you can add your
 own plugins!
 
 *Aws information is based on a custom tool that exports on AWS_ROLE and
@@ -11,9 +11,9 @@ AWS_SESSION_EXPIRATION information about the current assumed role.
 ## Usage
 
 * You need a valid go installation and $GOPATH/bin on your path
-* libgit2 version 0.26 (Git plugin needs git2go, which is has the go bindings for libgit2).
+* libgit2 version 0.26 (Git plugin needs git2go, which has the go bindings for libgit2).
   Currently using git2go.v26 (bindings agains libgit2 0.26) if you have another
-  version you will have to change the import to be able to build goprompt.
+  version you will have to change the import to be able to build goprompt (on prompt/plugin/git.go).
   * (on MAC you can install libgit2 with brew. you will need pkg-config if its not already installed)
 * go get github.com/josledp/goprompt
 * go install github.com/josledp/goprompt
@@ -36,7 +36,7 @@ AWS_SESSION_EXPIRATION information about the current assumed role.
   offer. Currently the only way to tune the plugin options is using this config
   file.
   Example:
-    ```{"options":{"path.fullpath":2}}```
+    ```{"options":{"path.fullpath":2}, "custom_template": "<{%k8s%}><(%python%) ><%aws%|><%user%@><%hostname%> <%lastcommand% ><%path%>< %git%><%userchar%> " }```
 ## Plugins
 
 * aws: shows your current assumed role (red if expired, yellow if < 10minuts to
@@ -44,6 +44,7 @@ AWS_SESSION_EXPIRATION information about the current assumed role.
 * git: shows information on branch/commits diff with upstream/current workdir
   status.... It does a fetch if last fetch >300 seconds
 * golang: shows information of the runtime golang version
+* k8s: shows current context name with its namespace
 * lastcommand: shows the last command return code
 * path: shows the current path
 * python: shows current virtualenvironment if any
@@ -52,8 +53,7 @@ AWS_SESSION_EXPIRATION information about the current assumed role.
 * userchar: $ or # (normal user vs root)
 
 ## Known issues
-* Missing some tests after plugin refactor
-* The code needs a couple of iterations more to be proud of
+* Missing some tests 
 
 ## Todo
 * Implement plugin options in the command line

@@ -15,6 +15,7 @@ type Config struct {
 }
 
 type parameters struct {
+	Template       string                 `json:"template"`
 	CustomTemplate string                 `json:"custom_template"`
 	Options        map[string]interface{} `json:"options"`
 }
@@ -86,9 +87,13 @@ func (c *Config) load(r io.Reader) error {
 	return nil
 }
 
+//GetTemplate returns the configured predefined template
+func (c *Config) GetTemplate() (string, bool) {
+	return c.params.Template, c.params.Template != ""
+}
+
 //GetCustomTemplate returns the configured custom templatefile
 func (c *Config) GetCustomTemplate() (string, bool) {
-
 	return c.params.CustomTemplate, c.params.CustomTemplate != ""
 }
 
