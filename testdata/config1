@@ -1,0 +1,18 @@
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: some_ca_crt_base64
+    server: https://1.1.1.1
+  name: cluster1
+contexts:
+- context:
+    cluster: cluster1
+    user: cluster1_user
+  name: cluster1_context
+current-context: cluster1_context
+kind: Config
+preferences: {}
+users:
+- name: cluster1_user
+  user:
+    some_auth_data: test

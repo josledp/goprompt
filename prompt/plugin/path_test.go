@@ -59,6 +59,28 @@ func TestPath(t *testing.T) {
 			expectedPwd:    "/t/test",
 			expectedPrompt: "\\[\\033[0m\\]\\[\\033[1;34m\\]/t/test\\[\\033[0m\\]",
 		},
+		{
+			name: "test_flex_path",
+			env: []map[string]string{
+				{
+					"PWD": "/tmp/test",
+				},
+			},
+			options:        map[string]interface{}{"path.fullpath": float64(3)},
+			expectedPwd:    "/tmp/test",
+			expectedPrompt: "\\[\\033[0m\\]\\[\\033[1;34m\\]/tmp/test\\[\\033[0m\\]",
+		},
+		{
+			name: "test_flex_path",
+			env: []map[string]string{
+				{
+					"PWD": "/tmp/some_very_long_dir_or_path/test1/test",
+				},
+			},
+			options:        map[string]interface{}{"path.fullpath": float64(3)},
+			expectedPwd:    "/t/s/test1/test",
+			expectedPrompt: "\\[\\033[0m\\]\\[\\033[1;34m\\]/t/s/test1/test\\[\\033[0m\\]",
+		},
 	}
 
 	for _, tc := range testCases {
