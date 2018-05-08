@@ -17,6 +17,7 @@ func TestConfig(t *testing.T) {
 			name: "Full config",
 			config: Config{
 				params: parameters{
+					Template:       "hello1",
 					CustomTemplate: "test",
 					Options: map[string]interface{}{
 						"option1": "value1",
@@ -24,7 +25,7 @@ func TestConfig(t *testing.T) {
 					},
 				},
 			},
-			expect: "{\"custom_template\":\"test\",\"options\":{\"option1\":\"value1\",\"option2\":10}}",
+			expect: "{\"template\":\"hello1\",\"custom_template\":\"test\",\"options\":{\"option1\":\"value1\",\"option2\":10}}",
 		},
 		{
 			name: "Only Custom Template",
@@ -34,7 +35,7 @@ func TestConfig(t *testing.T) {
 					Options:        nil,
 				},
 			},
-			expect: "{\"custom_template\":\"test\",\"options\":null}",
+			expect: "{\"template\":\"\",\"custom_template\":\"test\",\"options\":null}",
 		},
 		{
 			name: "only options",
@@ -46,7 +47,7 @@ func TestConfig(t *testing.T) {
 					},
 				},
 			},
-			expect: "{\"custom_template\":\"\",\"options\":{\"option1\":\"value1\",\"option2\":10}}",
+			expect: "{\"template\":\"\",\"custom_template\":\"\",\"options\":{\"option1\":\"value1\",\"option2\":10}}",
 		},
 	}
 	for _, tc := range tt {
