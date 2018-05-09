@@ -30,6 +30,7 @@ func main() {
 	var template string
 	var customTemplate string
 	var helpPlugin, helpTemplate bool
+	var debug bool
 
 	config, err := prompt.NewConfigFromFile(os.Getenv("HOME") + "/.config/goprompt/goprompt.json")
 	if err != nil {
@@ -43,9 +44,10 @@ func main() {
 	currentTemplates := strings.Join(prompt.GetDefaultTemplates(), ",")
 	flag.StringVar(&template, "template", defaultTemplate, "template to use for the prompt ("+currentTemplates+")")
 	flag.StringVar(&customTemplate, "custom-template", "<(%python%) ><%aws%|><%user% ><%lastcommand% ><%path%>< %git%>$ ", "template to use for the prompt")
+	flag.BoolVar(&debug, "debug", false, "Enable debug")
 	flag.BoolVar(&noColor, "no-color", false, "Disable color on prompt")
 	flag.BoolVar(&helpPlugin, "help-plugin", false, "Shows plugins help")
-	flag.BoolVar(&helpTemplate, "help-template", false, "Shows templateing help")
+	flag.BoolVar(&helpTemplate, "help-template", false, "Shows templating help")
 
 	flag.Parse()
 
@@ -92,7 +94,7 @@ func main() {
 		}
 	}
 	pr := prompt.New(options)
-	output := pr.Compile(t, !noColor)
+	output := pr.Compile(t, !noColor, debug)
 	fmt.Println(output)
 
 }

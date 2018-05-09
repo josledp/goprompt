@@ -66,7 +66,7 @@ func (pr Prompt) Cache(key string, value interface{}) error {
 }
 
 //Compile processes the template and returns a prompt string
-func (pr Prompt) Compile(template string, color bool) string {
+func (pr Prompt) Compile(template string, color bool, debug bool) string {
 	var format func(string, ...termcolor.Mode) string
 	output := template
 
@@ -114,35 +114,58 @@ func (pr Prompt) Compile(template string, color bool) string {
 	for _, chunk := range chunks {
 		go func(chunk string) {
 			defer pluginsWg.Done()
-			processedChunk := chunk[1 : len(chunk)-1]
-			rawPlugin := rePlugin.FindString(chunk)
-			plugin := rawPlugin[1 : len(rawPlugin)-1]
-			if p, ok := mPlugins[plugin]; ok {
-				//TODO +options
-				err := p.Load(pr)
-				if err != nil {
-					log.Printf("Unable to load plugin %s: %v", plugin, err)
+			if len(chunk) < 3 {
+				if debug {
+					log.Printf("chunk too short: %s", chunk)
+					pluginsOutput <- []string{chunk, ""}
 					return
 				}
-				output, modes := p.Get(format)
-				if output != "" {
-					extra := strings.Split(processedChunk, rawPlugin)
-					for _, e := range extra {
-						useless, _ := regexp.MatchString("^[ ]*$", e)
-						if !useless {
-							processed := format(e, modes...)
-							processedChunk = strings.Replace(processedChunk, e, processed, -1)
-						}
-					}
-					processedChunk = strings.Replace(processedChunk, rawPlugin, output, -1)
-					pluginsOutput <- []string{chunk, format(processedChunk, modes...)}
-				} else {
-					pluginsOutput <- []string{chunk, ""}
+			}
+			toProcessChunk := chunk[1 : len(chunk)-1]
+			rawPlugin := rePlugin.FindString(chunk)
+			if len(rawPlugin) < 3 {
+				if debug {
+					log.Printf("plugin section too short: %s", rawPlugin)
 				}
-			} else {
-				log.Printf("Plugin %s not found", plugin)
+				pluginsOutput <- []string{chunk, ""}
+				return
+			}
+			plugin := rawPlugin[1 : len(rawPlugin)-1]
+			p, found := mPlugins[plugin]
+			if !found {
+				if debug {
+					log.Printf("plugin %s not found", plugin)
+				}
+				pluginsOutput <- []string{chunk, ""}
+				return
 			}
 
+			//TODO +options
+			err := p.Load(pr)
+			if err != nil {
+				if debug {
+					log.Printf("Unable to load plugin %s: %v", plugin, err)
+				}
+				pluginsOutput <- []string{chunk, ""}
+				return
+			}
+
+			output, modes := p.Get(format)
+			if output == "" {
+				pluginsOutput <- []string{chunk, ""}
+				return
+			}
+
+			extra := strings.Split(toProcessChunk, rawPlugin)
+			for _, e := range extra {
+				useless, _ := regexp.MatchString("^[ ]*$", e)
+				if !useless {
+					processed := format(e, modes...)
+					toProcessChunk = strings.Replace(toProcessChunk, e, processed, -1)
+				}
+			}
+			processedChunk := strings.Replace(toProcessChunk, rawPlugin, output, -1)
+			pluginsOutput <- []string{chunk, processedChunk}
 		}(chunk)
 	}
 	for rep := range pluginsOutput {
