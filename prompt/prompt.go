@@ -98,7 +98,7 @@ func (pr Prompt) Compile(template string, color bool, debug bool) string {
 
 	//Regular expresions for matching on template
 	reChunk, _ := regexp.Compile("<[^<>]*>")
-	rePlugin, _ := regexp.Compile("%[a-z0-9]*%")
+	rePluginMod, _ := regexp.Compile("%[a-z0-9]:?.*%")
 	chunks := reChunk.FindAllString(template, -1)
 
 	//Channel for plugins to write (parallel plugin processing)
@@ -122,15 +122,16 @@ func (pr Prompt) Compile(template string, color bool, debug bool) string {
 				}
 			}
 			toProcessChunk := chunk[1 : len(chunk)-1]
-			rawPlugin := rePlugin.FindString(chunk)
-			if len(rawPlugin) < 3 {
+			rawPluginMod := rePluginMod.FindString(chunk)
+			if len(rawPluginMod) < 3 {
 				if debug {
-					log.Printf("plugin section too short: %s", rawPlugin)
+					log.Printf("plugin section too short: %s", rawPluginMod)
 				}
 				pluginsOutput <- []string{chunk, ""}
 				return
 			}
-			plugin := rawPlugin[1 : len(rawPlugin)-1]
+			pluginMod := strings.Split(rawPluginMod[1:len(rawPluginMod)-1], ":")
+			plugin := pluginMod[0]
 			p, found := mPlugins[plugin]
 			if !found {
 				if debug {
@@ -155,8 +156,16 @@ func (pr Prompt) Compile(template string, color bool, debug bool) string {
 				pluginsOutput <- []string{chunk, ""}
 				return
 			}
+			if len(pluginMod) > 1 {
+				mods := strings.Split(pluginMod[1], ";")
+				for _, m := range mods {
+					if len(m) > 0 {
+						output = applyMod(m, output)
+					}
+				}
+			}
 
-			extra := strings.Split(toProcessChunk, rawPlugin)
+			extra := strings.Split(toProcessChunk, rawPluginMod)
 			for _, e := range extra {
 				useless, _ := regexp.MatchString("^[ ]*$", e)
 				if !useless {
@@ -164,7 +173,7 @@ func (pr Prompt) Compile(template string, color bool, debug bool) string {
 					toProcessChunk = strings.Replace(toProcessChunk, e, processed, -1)
 				}
 			}
-			processedChunk := strings.Replace(toProcessChunk, rawPlugin, output, -1)
+			processedChunk := strings.Replace(toProcessChunk, rawPluginMod, output, -1)
 			pluginsOutput <- []string{chunk, processedChunk}
 		}(chunk)
 	}
@@ -174,6 +183,14 @@ func (pr Prompt) Compile(template string, color bool, debug bool) string {
 	err := pr.cache.save()
 	if err != nil {
 		log.Printf("Unable to save cache: %v", err)
+	}
+	return output
+}
+
+func applyMod(m, output string) string {
+	switch(m[0]) {
+	case 's':
+	case 'd':
 	}
 	return output
 }
