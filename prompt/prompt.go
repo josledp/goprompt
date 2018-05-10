@@ -18,6 +18,7 @@ import (
 type Prompt struct {
 	options map[string]interface{}
 	cache   *Cache
+	debug   bool
 }
 
 //Plugin is the interface all the plugins MUST implement
@@ -29,12 +30,12 @@ type Plugin interface {
 }
 
 //New returns a new promp
-func New(options map[string]interface{}) Prompt {
+func New(options map[string]interface{}, debug bool) Prompt {
 	c, err := newCache()
 	if err != nil {
 		log.Printf("unable to initializa cache: %v", err)
 	}
-	return Prompt{options, c}
+	return Prompt{options, c, debug}
 }
 
 //GetOption returns the option value for key
@@ -66,7 +67,7 @@ func (pr Prompt) Cache(key string, value interface{}) error {
 }
 
 //Compile processes the template and returns a prompt string
-func (pr Prompt) Compile(template string, color bool, debug bool) string {
+func (pr Prompt) Compile(template string, color bool) string {
 	var format func(string, ...termcolor.Mode) string
 	output := template
 
@@ -97,8 +98,8 @@ func (pr Prompt) Compile(template string, color bool, debug bool) string {
 	}
 
 	//Regular expresions for matching on template
-	reChunk, _ := regexp.Compile("<[^<>]*>")
-	rePlugin, _ := regexp.Compile("%[a-z0-9]*%")
+	reChunk := regexp.MustCompile("<[^<>]*>")
+	rePluginMod := regexp.MustCompile("%[a-z0-9]:?.*%")
 	chunks := reChunk.FindAllString(template, -1)
 
 	//Channel for plugins to write (parallel plugin processing)
@@ -115,25 +116,26 @@ func (pr Prompt) Compile(template string, color bool, debug bool) string {
 		go func(chunk string) {
 			defer pluginsWg.Done()
 			if len(chunk) < 3 {
-				if debug {
+				if pr.debug {
 					log.Printf("chunk too short: %s", chunk)
 					pluginsOutput <- []string{chunk, ""}
 					return
 				}
 			}
 			toProcessChunk := chunk[1 : len(chunk)-1]
-			rawPlugin := rePlugin.FindString(chunk)
-			if len(rawPlugin) < 3 {
-				if debug {
-					log.Printf("plugin section too short: %s", rawPlugin)
+			rawPluginMod := rePluginMod.FindString(chunk)
+			if len(rawPluginMod) < 3 {
+				if pr.debug {
+					log.Printf("plugin section too short: %s", rawPluginMod)
 				}
 				pluginsOutput <- []string{chunk, ""}
 				return
 			}
-			plugin := rawPlugin[1 : len(rawPlugin)-1]
+			pluginMod := strings.Split(rawPluginMod[1:len(rawPluginMod)-1], ":")
+			plugin := pluginMod[0]
 			p, found := mPlugins[plugin]
 			if !found {
-				if debug {
+				if pr.debug {
 					log.Printf("plugin %s not found", plugin)
 				}
 				pluginsOutput <- []string{chunk, ""}
@@ -143,7 +145,7 @@ func (pr Prompt) Compile(template string, color bool, debug bool) string {
 			//TODO +options
 			err := p.Load(pr)
 			if err != nil {
-				if debug {
+				if pr.debug {
 					log.Printf("Unable to load plugin %s: %v", plugin, err)
 				}
 				pluginsOutput <- []string{chunk, ""}
@@ -155,16 +157,25 @@ func (pr Prompt) Compile(template string, color bool, debug bool) string {
 				pluginsOutput <- []string{chunk, ""}
 				return
 			}
+			if len(pluginMod) > 1 {
+				mods := strings.Split(strings.Join(pluginMod[1:], ":"), ";")
+				for _, m := range mods {
+					if len(m) > 0 {
+						output = pr.applyMod(m, output)
+					}
+				}
+			}
+			extra := strings.Split(toProcessChunk, rawPluginMod)
 
-			extra := strings.Split(toProcessChunk, rawPlugin)
-			for _, e := range extra {
+			for i, e := range extra {
 				useless, _ := regexp.MatchString("^[ ]*$", e)
 				if !useless {
 					processed := format(e, modes...)
-					toProcessChunk = strings.Replace(toProcessChunk, e, processed, -1)
+					extra[i] = strings.Replace(extra[i], e, processed, -1)
 				}
 			}
-			processedChunk := strings.Replace(toProcessChunk, rawPlugin, output, -1)
+			processedChunk := extra[0] + output + extra[1]
+
 			pluginsOutput <- []string{chunk, processedChunk}
 		}(chunk)
 	}
@@ -176,6 +187,33 @@ func (pr Prompt) Compile(template string, color bool, debug bool) string {
 		log.Printf("Unable to save cache: %v", err)
 	}
 	return output
+}
+
+func (pr Prompt) applyMod(m, text string) string {
+	switch m[0] {
+	case 's':
+		parameters := strings.Split(m, "|")
+		if len(parameters) < 3 {
+			if pr.debug {
+				log.Printf("not enough parameters for s modificator: %v", parameters)
+			}
+			return text
+		}
+		re, err := regexp.Compile(parameters[1])
+		if err != nil {
+			if pr.debug {
+				log.Printf("unable to compile expression %s", parameters[1])
+			}
+			return text
+		}
+		matches := re.FindStringSubmatch(text)
+		text = parameters[2]
+		for i, m := range matches[1:] {
+			tofind := fmt.Sprintf("\\%d", i+1)
+			text = strings.Replace(text, tofind, m, -1)
+		}
+	}
+	return text
 }
 
 //GetDefaultTemplates returns the default templates defined by the prompt package
@@ -259,7 +297,7 @@ func init() {
 	defaultTemplates = map[string]string{
 		"Evermeet": "<(%python%) ><%aws%|><%user%@><%hostname%> <%lastcommand% ><%path%>< %git%><%userchar%> ",
 		"Fedora":   "[ <(%python%) ><%aws%|><%user%@><%hostname%> <%lastcommand% ><%path%>< %git%> ]<%userchar%> ",
-		"Prefered": "<{%k8s%}><(%python%) ><%aws%|><%path%>< %git%><%exituserchar%> ",
+		"Prefered": "<{%k8s%}><(%python%) ><%aws:s|([^:]*):[^-]*-[^-]*-(.*)|\\1:\\2%|><%path%>< %git%><%exituserchar%> ",
 	}
 	defaultTemplatesOptions = map[string]map[string]interface{}{
 		"Evermeet": map[string]interface{}{

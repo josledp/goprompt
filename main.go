@@ -93,8 +93,8 @@ func main() {
 			options, _ = prompt.GetTemplateOptions(template)
 		}
 	}
-	pr := prompt.New(options)
-	output := pr.Compile(t, !noColor, debug)
+	pr := prompt.New(options, debug)
+	output := pr.Compile(t, !noColor)
 	fmt.Println(output)
 
 }

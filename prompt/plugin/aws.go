@@ -3,7 +3,6 @@ package plugin
 import (
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/josledp/termcolor"
@@ -28,16 +27,7 @@ func (Aws) Help() (description string, options map[string]string) {
 
 //Load is the load function of the plugin
 func (a *Aws) Load(Prompter) error {
-	role := os.Getenv("AWS_ROLE")
-	if role != "" {
-		tmp := strings.Split(role, ":")
-		role = tmp[0]
-		tmp = strings.Split(tmp[1], "-")
-		if len(tmp) > 2 {
-			role += ":" + tmp[2]
-		}
-	}
-	a.role = role
+	a.role = os.Getenv("AWS_ROLE")
 	iExpire, _ := strconv.ParseInt(os.Getenv("AWS_SESSION_EXPIRE"), 10, 0)
 	a.expire = time.Unix(iExpire, int64(0))
 	return nil
