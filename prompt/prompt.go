@@ -1,14 +1,14 @@
 package prompt
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"regexp"
-	"strings"
-	"sync"
+	"text/template"
 
 	"github.com/josledp/goprompt/prompt/plugin"
 	"github.com/josledp/termcolor"
@@ -18,7 +18,11 @@ import (
 type Prompt struct {
 	options map[string]interface{}
 	cache   *Cache
+	plugins map[string]Plugin
+	format  func(string, ...termcolor.Mode) string
+
 	debug   bool
+	tmpMode []termcolor.Mode
 }
 
 //Plugin is the interface all the plugins MUST implement
@@ -30,12 +34,44 @@ type Plugin interface {
 }
 
 //New returns a new promp
-func New(options map[string]interface{}, debug bool) Prompt {
+func New(options map[string]interface{}, color, debug bool) Prompt {
 	c, err := newCache()
 	if err != nil {
 		log.Printf("unable to initializa cache: %v", err)
 	}
-	return Prompt{options, c, debug}
+	// map plugin by name
+	mPlugins := make(map[string]Plugin)
+	for _, p := range availablePlugins {
+		mPlugins[p.Name()] = p
+	}
+	var format func(string, ...termcolor.Mode) string
+
+	if color {
+		shell := detectShell()
+		switch shell {
+		case "bash":
+			format = termcolor.EscapedFormat
+		case "fish":
+			format = termcolor.Format
+		case "zsh":
+			format = termcolor.Format
+
+		default:
+			//Defaut failsafe
+			format = func(s string, modes ...termcolor.Mode) string { return s }
+		}
+	} else {
+		format = func(s string, modes ...termcolor.Mode) string { return s }
+	}
+
+	return Prompt{
+		options: options,
+		cache:   c,
+		plugins: mPlugins,
+		format:  format,
+		debug:   debug,
+		tmpMode: nil,
+	}
 }
 
 //GetOption returns the option value for key
@@ -67,153 +103,65 @@ func (pr Prompt) Cache(key string, value interface{}) error {
 }
 
 //Compile processes the template and returns a prompt string
-func (pr Prompt) Compile(template string, color bool) string {
-	var format func(string, ...termcolor.Mode) string
-	output := template
+func (pr *Prompt) Compile(tmpl string) string {
 
-	if color {
-
-		shell := detectShell()
-		switch shell {
-		case "bash":
-			format = termcolor.EscapedFormat
-		case "fish":
-			format = termcolor.Format
-		case "zsh":
-			format = termcolor.Format
-
-		default:
-			//Defaut failsafe
-			format = func(s string, modes ...termcolor.Mode) string { return s }
-		}
-	} else {
-
-		format = func(s string, modes ...termcolor.Mode) string { return s }
+	t, err := template.New("prompt").Funcs(pr.getFuncMap()).Parse(tmpl)
+	if err != nil {
+		log.Fatalf("unable to parse tmpl %s: %v", tmpl, err)
 	}
 
-	// map plugin by name
-	mPlugins := make(map[string]Plugin)
-	for _, p := range availablePlugins {
-		mPlugins[p.Name()] = p
+	b := &bytes.Buffer{}
+	err = t.Execute(b, struct{}{})
+	if err != nil {
+		log.Fatalf("unable to execute tmpl %s: %v", tmpl, err)
 	}
-
-	//Regular expresions for matching on template
-	reChunk := regexp.MustCompile("<[^<>]*>")
-	rePluginMod := regexp.MustCompile("%[a-z0-9]:?.*%")
-	chunks := reChunk.FindAllString(template, -1)
-
-	//Channel for plugins to write (parallel plugin processing)
-	pluginsOutput := make(chan []string)
-	pluginsWg := sync.WaitGroup{}
-	pluginsWg.Add(len(chunks))
-	go func() {
-		pluginsWg.Wait()
-		close(pluginsOutput)
-	}()
-
-	//For each chunk of <[^<>]*> we process it in parallel putting in the channel the string to replace on template
-	for _, chunk := range chunks {
-		go func(chunk string) {
-			defer pluginsWg.Done()
-			if len(chunk) < 3 {
-				if pr.debug {
-					log.Printf("chunk too short: %s", chunk)
-					pluginsOutput <- []string{chunk, ""}
-					return
-				}
-			}
-			toProcessChunk := chunk[1 : len(chunk)-1]
-			rawPluginMod := rePluginMod.FindString(chunk)
-			if len(rawPluginMod) < 3 {
-				if pr.debug {
-					log.Printf("plugin section too short: %s", rawPluginMod)
-				}
-				pluginsOutput <- []string{chunk, ""}
-				return
-			}
-			pluginMod := strings.Split(rawPluginMod[1:len(rawPluginMod)-1], ":")
-			plugin := pluginMod[0]
-			p, found := mPlugins[plugin]
-			if !found {
-				if pr.debug {
-					log.Printf("plugin %s not found", plugin)
-				}
-				pluginsOutput <- []string{chunk, ""}
-				return
-			}
-
-			//TODO +options
-			err := p.Load(pr)
-			if err != nil {
-				if pr.debug {
-					log.Printf("Unable to load plugin %s: %v", plugin, err)
-				}
-				pluginsOutput <- []string{chunk, ""}
-				return
-			}
-
-			output, modes := p.Get(format)
-			if output == "" {
-				pluginsOutput <- []string{chunk, ""}
-				return
-			}
-			if len(pluginMod) > 1 {
-				mods := strings.Split(strings.Join(pluginMod[1:], ":"), ";")
-				for _, m := range mods {
-					if len(m) > 0 {
-						output = pr.applyMod(m, output)
-					}
-				}
-			}
-			extra := strings.Split(toProcessChunk, rawPluginMod)
-
-			for i, e := range extra {
-				useless, _ := regexp.MatchString("^[ ]*$", e)
-				if !useless {
-					processed := format(e, modes...)
-					extra[i] = strings.Replace(extra[i], e, processed, -1)
-				}
-			}
-			processedChunk := extra[0] + output + extra[1]
-
-			pluginsOutput <- []string{chunk, processedChunk}
-		}(chunk)
-	}
-	for rep := range pluginsOutput {
-		output = strings.Replace(output, rep[0], rep[1], -1)
-	}
-	err := pr.cache.save()
+	err = pr.cache.save()
 	if err != nil {
 		log.Printf("Unable to save cache: %v", err)
 	}
-	return output
+	return b.String()
 }
 
-func (pr Prompt) applyMod(m, text string) string {
-	switch m[0] {
-	case 's':
-		parameters := strings.Split(m, "|")
-		if len(parameters) < 3 {
-			if pr.debug {
-				log.Printf("not enough parameters for s modificator: %v", parameters)
-			}
-			return text
-		}
-		re, err := regexp.Compile(parameters[1])
-		if err != nil {
-			if pr.debug {
-				log.Printf("unable to compile expression %s", parameters[1])
-			}
-			return text
-		}
-		matches := re.FindStringSubmatch(text)
-		text = parameters[2]
-		for i, m := range matches[1:] {
-			tofind := fmt.Sprintf("\\%d", i+1)
-			text = strings.Replace(text, tofind, m, -1)
-		}
+func (pr *Prompt) getFuncMap() template.FuncMap {
+	return template.FuncMap{
+		"load":   pr.Load,
+		"wrap":   pr.Wrap,
+		"suffix": pr.Suffix,
+		"prefix": pr.Prefix,
 	}
-	return text
+}
+
+func (pr *Prompt) Load(plugin string) (string, error) {
+	var p Plugin
+	var ok bool
+	var output string
+
+	if p, ok = pr.plugins[plugin]; !ok {
+		return "", fmt.Errorf("unable to find plugin: %s", plugin)
+	}
+	err := p.Load(pr)
+	if err != nil {
+		return "", fmt.Errorf("unable to load plugin %s: %v", plugin, err)
+	}
+	output, pr.tmpMode = p.Get(pr.format)
+
+	if pr.debug {
+		fmt.Fprintf(os.Stderr, "plugin %s output: %s\n", plugin, output)
+	}
+	return output, nil
+}
+
+func (pr *Prompt) Wrap(prefix, suffix string, input string) string {
+	if input != "" {
+		return pr.format(fmt.Sprintf("%s%s%s", prefix, input, suffix), pr.tmpMode...)
+	}
+	return ""
+}
+func (pr *Prompt) Prefix(prefix, input string) string {
+	return pr.Wrap(prefix, "", input)
+}
+func (pr *Prompt) Suffix(suffix, input string) string {
+	return pr.Wrap("", suffix, input)
 }
 
 //GetDefaultTemplates returns the default templates defined by the prompt package
@@ -261,16 +209,9 @@ func ShowHelpTemplate(w io.Writer) {
 	fmt.Fprintf(w, "Templating help\n")
 	fmt.Fprintf(w, "===============\n")
 	fmt.Fprintln(w,
-		`Anything not between <> will be printed always as is. When goprompt finds <> its content is evaluated.
-Inside <> must be a call to some plugin, setting its name inside %%. If this plugin returns some text,
-any other content that was inside <> will be printed, otherwise nothing will be printed.
-
-
-Example:
-  "WeAreAt<---%hostname%--->"
-
-If the hostname plugin returns "myhostname" this template will print "WeAreAt---myhostname---", if the
-plugin returns nothing, this template will just print "WeAreAt"`)
+		`This project uses gotemplate. There are 4 functions over what gotemplate can do:
+		load "plugin": will load plugin
+		prefix, suffix, wrap: will add text/symbols before, after or both to any plugin output if it has content`)
 }
 
 //Predefined templates and its options
@@ -295,9 +236,9 @@ func init() {
 	}
 
 	defaultTemplates = map[string]string{
-		"Evermeet": "<(%python%) ><%aws%|><%user%@><%hostname%> <%lastcommand% ><%path%>< %git%><%userchar%> ",
-		"Fedora":   "[ <(%python%) ><%aws%|><%user%@><%hostname%> <%lastcommand% ><%path%>< %git%> ]<%userchar%> ",
-		"Prefered": "<{%k8s%}><(%python%) ><%aws:s|([^:]*):[^-]*-[^-]*-(.*)|\\1:\\2%|><%path%>< %git%><%exituserchar%> ",
+		"Evermeet": `{{load "python" |suffix " "}}{{load "aws"|suffix "|"}} {{load "user"|suffix "@"}}{{load "hostname"}} {{load "lastcommand"|suffix " "}}{{load "path"}}{{load "git"|prefix " "}}{{load "userchar"}}`,
+		"Fedora":   `[ {{load "python"|wrap "(" ") "}}{{load "aws"|suffix "|"}}{{load "user"|suffix "@"}}{{load "hostname"}} {{load "lastcommand"|suffix " "}}{{load "path"}}{{load "git"|prefix " "}} ]{{load "userchar"}} `,
+		"Prefered": `{{load "k8s"}}{{load "python"|wrap "("  ") "}}{{load "aws"|suffix "|"}}{{load "path"}}{{load "git"|prefix " "}}{{load "exituserchar"}} `,
 	}
 	defaultTemplatesOptions = map[string]map[string]interface{}{
 		"Evermeet": map[string]interface{}{
