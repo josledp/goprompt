@@ -14,6 +14,38 @@ import (
 	"github.com/josledp/termcolor"
 )
 
+var availablePlugins = []Plugin{
+	&plugin.Aws{},
+	&plugin.Git{},
+	&plugin.LastCommand{},
+	&plugin.Path{},
+	&plugin.Python{},
+	&plugin.User{},
+	&plugin.Hostname{},
+	&plugin.UserChar{},
+	&plugin.Golang{},
+	&plugin.Kubernetes{},
+	&plugin.ExitUserChar{},
+}
+
+var defaultTemplates = map[string]string{
+	"Evermeet": `{{load "python" |suffix " "}}{{load "aws"|suffix "|"}} {{load "user"|suffix "@"}}{{load "hostname"}} {{load "lastcommand"|suffix " "}}{{load "path"}}{{load "git"|prefix " "}}{{load "userchar"}}`,
+	"Fedora":   `[ {{load "python"|wrap "(" ") "}}{{load "aws"|suffix "|"}}{{load "user"|suffix "@"}}{{load "hostname"}} {{load "lastcommand"|suffix " "}}{{load "path"}}{{load "git"|prefix " "}} ]{{load "userchar"}} `,
+	"Prefered": `{{load "k8s"}}{{load "python"|wrap "("  ") "}}{{load "aws"|suffix "|"}}{{load "path"}}{{load "git"|prefix " "}}{{load "exituserchar"}} `,
+}
+
+var defaultTemplatesOptions = map[string]map[string]interface{}{
+	"Evermeet": map[string]interface{}{
+		"path.fullpath": float64(1),
+	},
+	"Fedora": map[string]interface{}{
+		"path.fullpath": float64(0),
+	},
+	"Prefered": map[string]interface{}{
+		"path.fullpath": float64(3),
+	},
+}
+
 //Prompt is the struct with the prompt options/config
 type Prompt struct {
 	options map[string]interface{}
@@ -152,10 +184,16 @@ func (pr *Prompt) Load(plugin string) (string, error) {
 }
 
 func (pr *Prompt) Wrap(prefix, suffix string, input string) string {
-	if input != "" {
-		return pr.format(fmt.Sprintf("%s%s%s", prefix, input, suffix), pr.tmpMode...)
+	if input == "" {
+		return ""
 	}
-	return ""
+	if prefix != "" {
+		prefix = pr.format(prefix, pr.tmpMode...)
+	}
+	if suffix != "" {
+		suffix = pr.format(suffix, pr.tmpMode...)
+	}
+	return fmt.Sprintf("%s%s%s", prefix, input, suffix)
 }
 func (pr *Prompt) Prefix(prefix, input string) string {
 	return pr.Wrap(prefix, "", input)
@@ -212,45 +250,6 @@ func ShowHelpTemplate(w io.Writer) {
 		`This project uses gotemplate. There are 4 functions over what gotemplate can do:
 		load "plugin": will load plugin
 		prefix, suffix, wrap: will add text/symbols before, after or both to any plugin output if it has content`)
-}
-
-//Predefined templates and its options
-var defaultTemplates map[string]string
-var defaultTemplatesOptions map[string]map[string]interface{}
-
-var availablePlugins []Plugin
-
-func init() {
-	availablePlugins = []Plugin{
-		&plugin.Aws{},
-		&plugin.Git{},
-		&plugin.LastCommand{},
-		&plugin.Path{},
-		&plugin.Python{},
-		&plugin.User{},
-		&plugin.Hostname{},
-		&plugin.UserChar{},
-		&plugin.Golang{},
-		&plugin.Kubernetes{},
-		&plugin.ExitUserChar{},
-	}
-
-	defaultTemplates = map[string]string{
-		"Evermeet": `{{load "python" |suffix " "}}{{load "aws"|suffix "|"}} {{load "user"|suffix "@"}}{{load "hostname"}} {{load "lastcommand"|suffix " "}}{{load "path"}}{{load "git"|prefix " "}}{{load "userchar"}}`,
-		"Fedora":   `[ {{load "python"|wrap "(" ") "}}{{load "aws"|suffix "|"}}{{load "user"|suffix "@"}}{{load "hostname"}} {{load "lastcommand"|suffix " "}}{{load "path"}}{{load "git"|prefix " "}} ]{{load "userchar"}} `,
-		"Prefered": `{{load "k8s"}}{{load "python"|wrap "("  ") "}}{{load "aws"|suffix "|"}}{{load "path"}}{{load "git"|prefix " "}}{{load "exituserchar"}} `,
-	}
-	defaultTemplatesOptions = map[string]map[string]interface{}{
-		"Evermeet": map[string]interface{}{
-			"path.fullpath": float64(1),
-		},
-		"Fedora": map[string]interface{}{
-			"path.fullpath": float64(0),
-		},
-		"Prefered": map[string]interface{}{
-			"path.fullpath": float64(3),
-		},
-	}
 }
 
 func detectShell() string {
