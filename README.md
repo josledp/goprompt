@@ -36,7 +36,7 @@ AWS_SESSION_EXPIRATION information about the current assumed role.
   offer. Currently the only way to tune the plugin options is using this config
   file.
   Example:
-    ```{"options":{"path.fullpath":2}, "custom_template": "<{%k8s%}><(%python%) ><%aws%|><%user%@><%hostname%> <%lastcommand% ><%path%>< %git%><%userchar%> " }```
+    ```{"options":{"path.fullpath":2}, "custom_template": "{{ load \"k8s\"}}{{load \"python\"|suffix \" \"}}{{load \"aws\"|suffix \"|\"}}{{load \"user\"|suffix \"@\"}}{{load \"hostname}} {{load \"lastcommand\"|suffix \" \"}}{{load path}}{{load \"git\"|prefix \" \"}}{{load \"userchar\"}} "}```
 ## Plugins
 
 * aws: shows your current assumed role (red if expired, yellow if < 10minuts to
@@ -51,6 +51,7 @@ AWS_SESSION_EXPIRATION information about the current assumed role.
 * user: shows the user (if its not root)
 * hostname: shows the hostname (green if regular user, red if root)
 * userchar: $ or # (normal user vs root)
+* exituserchar: shows the typical final char for the prompt (# is the user is root, $ otherwise) but it will be red if the last command exited with rc!=0
 
 ## Known issues
 * Missing some tests 
