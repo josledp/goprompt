@@ -114,24 +114,12 @@ func (pr Prompt) GetOption(key string) (interface{}, bool) {
 
 //GetCache recovers a value from cache
 func (pr Prompt) GetCache(key string) (interface{}, bool) {
-	//Encapsulate more cache?
-	if pr.cache == nil {
-		return nil, false
-	}
-	value, ok := pr.cache.data[key]
-	return value, ok
+	return pr.cache.get(key)
 }
 
 //Cache caches a key, value on cache
 func (pr Prompt) Cache(key string, value interface{}) error {
-	if pr.cache == nil {
-		return fmt.Errorf("Cache not initialized")
-	}
-	if pr.cache.data == nil {
-		pr.cache.data = make(map[string]interface{})
-	}
-	pr.cache.data[key] = value
-	return nil
+	return pr.cache.set(key, value)
 }
 
 //Compile processes the template and returns a prompt string

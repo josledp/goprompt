@@ -9,8 +9,9 @@ import (
 
 //Cache represents a cache data store
 type Cache struct {
-	file string
-	data map[string]interface{}
+	file     string
+	data     map[string]interface{}
+	modified bool
 }
 
 func newCache() (*Cache, error) {
@@ -29,6 +30,10 @@ func newCache() (*Cache, error) {
 }
 
 func (c *Cache) save() error {
+	if !c.modified {
+		return nil
+	}
+
 	if c.file == "" {
 		return fmt.Errorf("Cache not initialized")
 	}
@@ -54,5 +59,19 @@ func (c *Cache) load() error {
 	if err != nil {
 		return fmt.Errorf("Unable to unmarshal cache: %v", err)
 	}
+	return nil
+}
+
+func (c *Cache) get(key string) (interface{}, bool) {
+	value, ok := c.data[key]
+	return value, ok
+}
+
+func (c *Cache) set(key string, value interface{}) error {
+	if c.data == nil {
+		c.data = make(map[string]interface{})
+	}
+	c.data[key] = value
+	c.modified = true
 	return nil
 }
