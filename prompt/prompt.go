@@ -3,8 +3,6 @@ package prompt
 import (
 	"bytes"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"regexp"
@@ -31,7 +29,7 @@ var availablePlugins = []Plugin{
 var defaultTemplates = map[string]string{
 	"Evermeet": `{{load "python" |suffix " "}}{{load "aws"|suffix "|"}} {{load "user"|suffix "@"}}{{load "hostname"}} {{load "lastcommand"|suffix " "}}{{load "path"}}{{load "git"|prefix " "}}{{load "userchar"}}`,
 	"Fedora":   `[ {{load "python"|wrap "(" ") "}}{{load "aws"|suffix "|"}}{{load "user"|suffix "@"}}{{load "hostname"}} {{load "lastcommand"|suffix " "}}{{load "path"}}{{load "git"|prefix " "}} ]{{load "userchar"}} `,
-	"Prefered": `{{load "k8s"}}{{load "python"|wrap "("  ") "}}{{load "aws"|suffix "|"}}{{load "path"}}{{load "git"|prefix " "}}{{load "exituserchar"}} `,
+	"Prefered": `{{load "k8s"}}{{load "python"|wrap "("  ") "}}{{load "aws"|replace "([a-z]*):.*-([a-z]*)$" "$1:$2"|suffix "|"}}{{load "path"}}{{load "git"|prefix " "}}{{load "exituserchar"}} `,
 }
 
 var defaultTemplatesOptions = map[string]map[string]interface{}{
@@ -144,10 +142,11 @@ func (pr *Prompt) Compile(tmpl string) string {
 
 func (pr *Prompt) getFuncMap() template.FuncMap {
 	return template.FuncMap{
-		"load":   pr.Load,
-		"wrap":   pr.Wrap,
-		"suffix": pr.Suffix,
-		"prefix": pr.Prefix,
+		"load":    pr.Load,
+		"wrap":    pr.Wrap,
+		"suffix":  pr.Suffix,
+		"prefix":  pr.Prefix,
+		"replace": pr.Replace,
 	}
 }
 
@@ -189,73 +188,10 @@ func (pr *Prompt) Prefix(prefix, input string) string {
 func (pr *Prompt) Suffix(suffix, input string) string {
 	return pr.Wrap("", suffix, input)
 }
-
-//GetDefaultTemplates returns the default templates defined by the prompt package
-func GetDefaultTemplates() []string {
-	templates := make([]string, 0)
-	for name := range defaultTemplates {
-		templates = append(templates, name)
-	}
-	return templates
-}
-
-//GetTemplateOptions returns the default options for a default template
-func GetTemplateOptions(template string) (map[string]interface{}, bool) {
-	o, ok := defaultTemplatesOptions[template]
-	return o, ok
-}
-
-//GetTemplate returns the a default template by its name
-func GetTemplate(template string) (string, bool) {
-	t, ok := defaultTemplates[template]
-	return t, ok
-}
-
-//ShowHelpPlugin writes on w the plugin help
-func ShowHelpPlugin(w io.Writer) {
-	fmt.Fprintf(w, "Plugin help\n")
-	fmt.Fprintf(w, "===============\n")
-	for _, p := range availablePlugins {
-		name := p.Name()
-		desc, opt := p.Help()
-		fmt.Fprintf(w, "Plugin: %s\n", name)
-		fmt.Fprintf(w, "Description: %s\n", desc)
-		if len(opt) > 0 {
-			fmt.Fprintf(w, "Options:\n")
-			for o, od := range opt {
-				fmt.Fprintf(w, "  %s: %s\n", o, od)
-			}
-		}
-		fmt.Fprintf(w, "\n")
-	}
-}
-
-//ShowHelpTemplate writes on w the templating help
-func ShowHelpTemplate(w io.Writer) {
-	fmt.Fprintf(w, "Templating help\n")
-	fmt.Fprintf(w, "===============\n")
-	fmt.Fprintln(w,
-		`This project uses gotemplate. There are 4 functions over what gotemplate can do:
-		load "plugin": will load plugin
-		prefix, suffix, wrap: will add text/symbols before, after or both to any plugin output if it has content`)
-}
-
-func detectShell() string {
-	pid := os.Getppid()
-	cmdlineFile := fmt.Sprintf("/proc/%d/cmdline", pid)
-	cmdline, err := ioutil.ReadFile(cmdlineFile)
+func (pr *Prompt) Replace(expr, repl, src string) (string, error) {
+	re, err := regexp.Compile(expr)
 	if err != nil {
-		cmdline = []byte(os.Getenv("SHELL"))
-		if len(cmdline) <= 2 {
-			return "unknown"
-		}
+		return "", err
 	}
-
-	shells := []string{"bash", "zsh", "fish"}
-	for _, shell := range shells {
-		if matches, _ := regexp.Match(shell, cmdline); matches {
-			return shell
-		}
-	}
-	return "unknown"
+	return re.ReplaceAllString(src, repl), nil
 }
