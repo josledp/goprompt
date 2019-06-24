@@ -27,7 +27,7 @@ var availablePlugins = []Plugin{
 }
 
 var defaultTemplates = map[string]string{
-	"Evermeet": `{{load "python" |suffix " "}}{{load "aws"|suffix "|"}} {{load "user"|suffix "@"}}{{load "hostname"}} {{load "lastcommand"|suffix " "}}{{load "path"}}{{load "git"|prefix " "}}{{load "userchar"}}`,
+	"Evermeet": `{{load "python" |suffix " "}}{{load "aws"|suffix "|"}}{{load "user"|suffix "@"}}{{load "hostname"}} {{load "lastcommand"|suffix " "}}{{load "path"}}{{load "git"|prefix " "}}{{load "userchar"}} `,
 	"Fedora":   `[ {{load "python"|wrap "(" ") "}}{{load "aws"|suffix "|"}}{{load "user"|suffix "@"}}{{load "hostname"}} {{load "lastcommand"|suffix " "}}{{load "path"}}{{load "git"|prefix " "}} ]{{load "userchar"}} `,
 	"Prefered": `{{load "k8s"}}{{load "python"|wrap "("  ") "}}{{load "aws"|replace "(.*):.*-([^-]*)$" "$1:$2"|suffix "|"}}{{load "path"}}{{load "git"|prefix " "}}{{load "exituserchar"}} `,
 }
