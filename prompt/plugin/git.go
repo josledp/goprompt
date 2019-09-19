@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/josledp/termcolor"
-	git2go "gopkg.in/libgit2/git2go.v27"
+	git2go "gopkg.in/libgit2/git2go.v26"
 )
 
 const (
