@@ -1,9 +1,9 @@
 github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 h1:El6M4kTTCOh6aBiKaUGG7oYTSPP8MxqL4YI3kZKwcP4=
 github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510/go.mod h1:pupxD2MaaD3pAXIBCelhxNneeOaAeabZDe5s4K6zSpQ=
+github.com/jeffwelling/git2go/v37 v37.0.4 h1:1zeyPM+MH5ZKHPA7SCaPCNA6rGuxOiskau593Uu36jg=
+github.com/jeffwelling/git2go/v37 v37.0.4/go.mod h1:FLLWa/w//wB5xNxmH/XEMmWFyPXFUgI4lEjyzYi+5oM=
 github.com/josledp/termcolor v0.0.0-20170922073712-15084bd81a38 h1:7k4/DJPtGl7GYIxvy06uIBNtJ8T7Zl9kZB0y7obU/hM=
 github.com/josledp/termcolor v0.0.0-20170922073712-15084bd81a38/go.mod h1:D+gD9Ttp1wvI/yOhtiRaa1Iy0wlWJhUmIUtsPd2ZP98=
-github.com/libgit2/git2go/v34 v34.0.0 h1:UKoUaKLmiCRbOCD3PtUi2hD6hESSXzME/9OUZrGcgu8=
-github.com/libgit2/git2go/v34 v34.0.0/go.mod h1:blVco2jDAw6YTXkErMMqzHLcAjKkwF0aWIRHBqiJkZ0=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20201203163018-be400aefbc4c h1:9HhBz5L/UjnK9XLtiZhYAdue5BVKep3PMmS2LuPDt8k=
 golang.org/x/crypto v0.0.0-20201203163018-be400aefbc4c/go.mod h1:jdWPYTVW3xRLrWPugEBEK3UY2ZEsg3UU495nc5E+M+I=
