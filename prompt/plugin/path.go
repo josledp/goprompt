@@ -10,17 +10,17 @@ import (
 
 const maxPathLength = 20
 
-//Path is the plugin struct
+// Path is the plugin struct
 type Path struct {
 	pwd string
 }
 
-//Name returns the plugin name
+// Name returns the plugin name
 func (Path) Name() string {
 	return "path"
 }
 
-//Help returns help information about this plugin
+// Help returns help information about this plugin
 func (Path) Help() (description string, options map[string]string) {
 	description = "This plugins show the current path"
 	options = map[string]string{
@@ -29,11 +29,11 @@ func (Path) Help() (description string, options map[string]string) {
 	return
 }
 
-//Load is the load function of the plugin
+// Load is the load function of the plugin
 func (p *Path) Load(pr Prompter) error {
 	p.pwd = os.Getenv("PWD")
 	if p.pwd == "" {
-		return fmt.Errorf("Unable to get PWD")
+		return fmt.Errorf("unable to get PWD")
 	}
 
 	home := os.Getenv("HOME")
@@ -89,7 +89,7 @@ func (p *Path) Load(pr Prompter) error {
 					p.pwd = tmp[len(tmp)-1]
 				}
 			} else {
-				return fmt.Errorf("Unable to parse path.fullpath option")
+				return fmt.Errorf("unable to parse path.fullpath option")
 			}
 
 		}
@@ -98,7 +98,7 @@ func (p *Path) Load(pr Prompter) error {
 	return nil
 }
 
-//Get returns the string to use in the prompt
+// Get returns the string to use in the prompt
 func (p Path) Get(format func(string, ...termcolor.Mode) string) (string, []termcolor.Mode) {
 	return format(p.pwd, termcolor.Bold, termcolor.FgBlue), []termcolor.Mode{termcolor.FgBlue}
 }

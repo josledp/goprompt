@@ -1,30 +1,29 @@
 package plugin
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
 	"github.com/josledp/termcolor"
 )
 
-//Python is the plugin struct
+// Python is the plugin struct
 type Python struct {
 	virtualEnv string
 }
 
-//Name returns the plugin name
+// Name returns the plugin name
 func (Python) Name() string {
 	return "python"
 }
 
-//Help returns help information about this plugin
+// Help returns help information about this plugin
 func (Python) Help() (description string, options map[string]string) {
 	description = "This plugins show the current python virtual environment"
 	return
 }
 
-//Load is the load function of the plugin
+// Load is the load function of the plugin
 func (p *Python) Load(Prompter) error {
 	virtualEnv, ve := os.LookupEnv("VIRTUAL_ENV")
 	if ve {
@@ -34,10 +33,10 @@ func (p *Python) Load(Prompter) error {
 	return nil
 }
 
-//Get returns the string to use in the prompt
+// Get returns the string to use in the prompt
 func (p Python) Get(format func(string, ...termcolor.Mode) string) (string, []termcolor.Mode) {
 	if p.virtualEnv != "" {
-		return format(fmt.Sprintf("%s", p.virtualEnv), termcolor.FgBlue), []termcolor.Mode{termcolor.FgBlue}
+		return format(p.virtualEnv, termcolor.FgBlue), []termcolor.Mode{termcolor.FgBlue}
 	}
 	return "", nil
 }

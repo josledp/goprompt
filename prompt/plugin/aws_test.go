@@ -19,11 +19,11 @@ func TestAws(t *testing.T) {
 	a.Load(nil)
 
 	if a.role != expectedRole {
-		t.Error("Expected role %s, got %s", expectedRole, a.role)
+		t.Errorf("expected role %s, got %s", expectedRole, a.role)
 	}
 
 	if !(time.Unix(1506345326, int64(0)).Equal(a.expire)) {
-		t.Error("AWS expire time error. expected %d, got %d", 1506345326, a.expire)
+		t.Errorf("AWS expire time error. expected %d, got %d", 1506345326, a.expire.Unix())
 	}
 	output, _ := a.Get(termcolor.EscapedFormat)
 	if output != expectedPrompt {

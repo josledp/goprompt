@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/josledp/termcolor"
 	git2go "github.com/jeffwelling/git2go/v37"
+	"github.com/josledp/termcolor"
 )
 
 const (
@@ -26,7 +26,7 @@ const (
 	sCross     = "✖"
 )
 
-//Git is the plugin struct
+// Git is the plugin struct
 type Git struct {
 	conflicted    int
 	detached      bool
@@ -40,24 +40,24 @@ type Git struct {
 	hasUpstream   bool
 }
 
-//Name returns the plugin name
+// Name returns the plugin name
 func (Git) Name() string {
 	return "git"
 }
 
-//Help returns help information about this plugin
+// Help returns help information about this plugin
 func (Git) Help() (description string, options map[string]string) {
 	description = "This plugins show git information in the current git repo"
 	return
 }
 
-//Load is the load function of the plugin
+// Load is the load function of the plugin
 func (g *Git) Load(pr Prompter) error {
 	gitpath, err := git2go.Discover(".", false, []string{"/"})
 	if err == nil {
 		repository, err := git2go.OpenRepository(gitpath)
 		if err != nil {
-			return fmt.Errorf("Error opening repository at %s: %v", gitpath, err)
+			return fmt.Errorf("error opening repository at %s: %v", gitpath, err)
 		}
 		defer repository.Free()
 
@@ -67,10 +67,13 @@ func (g *Git) Load(pr Prompter) error {
 		}
 		repostate, err := repository.StatusList(&statusOpts)
 		if err != nil {
-			return fmt.Errorf("Error getting repository status at %s: %v", gitpath, err)
+			return fmt.Errorf("error getting repository status at %s: %v", gitpath, err)
 		}
 		defer repostate.Free()
 		n, err := repostate.EntryCount()
+		if err != nil {
+			return fmt.Errorf("error getting repository status entry count at %s: %v", gitpath, err)
+		}
 		for i := 0; i < n; i++ {
 			entry, _ := repostate.ByIndex(i)
 			got := false
@@ -139,7 +142,7 @@ func (g *Git) Load(pr Prompter) error {
 
 		localBranch := localRef.Branch()
 		if err != nil {
-			return fmt.Errorf("Error getting local branch: %v", err)
+			return fmt.Errorf("error getting local branch: %v", err)
 		}
 
 		if isHead, _ := localBranch.IsHead(); isHead {
@@ -188,7 +191,7 @@ func (g *Git) Load(pr Prompter) error {
 			if !remoteRef.Target().Equal(localRef.Target()) {
 				g.commitsAhead, g.commitsBehind, err = repository.AheadBehind(localRef.Target(), remoteRef.Target())
 				if err != nil {
-					return fmt.Errorf("Error getting commitsAhead/Behing: %v", err)
+					return fmt.Errorf("error getting commitsAhead/Behing: %v", err)
 				}
 			}
 		}
@@ -203,7 +206,7 @@ func (g *Git) Load(pr Prompter) error {
 	return nil
 }
 
-//Get returns the string to use in the prompt
+// Get returns the string to use in the prompt
 func (g Git) Get(format func(string, ...termcolor.Mode) string) (string, []termcolor.Mode) {
 	var gitPromptInfo string
 	if g.branch != "" {
